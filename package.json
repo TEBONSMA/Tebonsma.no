@@ -1,0 +1,16 @@
+{
+  "name": "tebonsma-site",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "live-server www --port=8080",
+    "serve-root": "live-server --port=8080",
+    "start": "npm run dev",
+    "build:css": "sass www/style/main.scss:www/style/main.css --no-source-map --style=compressed",
+    "watch:css": "sass --watch www/style:www/style"
+  },
+  "devDependencies": {
+    "live-server": "^1.2.2",
+    "sass": "^1.70.0"
+  }
+}
