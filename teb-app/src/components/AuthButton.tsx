@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { ChevronDown, LogIn, LogOut, UserCog } from 'lucide-react'
+import { useProfile } from '../account/ProfileContext'
 import { useAuth } from '../auth/AuthContext'
-import { displayName, initials } from '../auth/profile'
-import { ACCOUNT_URL } from '../auth/userManager'
+import { displayName } from '../auth/profile'
+import Avatar from './Avatar'
 
 const PILL_BG = '#ff8c42'
 const PILL_TEXT = '#1f2937'
@@ -16,6 +18,7 @@ const menuItemClasses =
 // Shown from the md breakpoint up: a round button until lg, where there is room for text
 const AuthButton = () => {
   const { user, isLoading, login, logout } = useAuth()
+  const { profile } = useProfile()
   const [open, setOpen] = useState(false)
   const rootRef = useRef<HTMLDivElement>(null)
 
@@ -54,8 +57,9 @@ const AuthButton = () => {
     )
   }
 
-  const name = displayName(user)
-  const email = user.profile.email
+  // The account API has the current name and picture; Authelia's copy can lag behind edits
+  const name = profile?.displayName || displayName(user)
+  const email = profile?.email ?? user.profile.email
 
   return (
     <div ref={rootRef} className="relative">
@@ -69,13 +73,7 @@ const AuthButton = () => {
           className={`${pillClasses} px-0 lg:pl-0 lg:pr-4`}
           style={{ background: PILL_BG, color: PILL_TEXT }}
         >
-          <span
-            className="h-full aspect-square rounded-full inline-flex items-center justify-center text-[15px] font-bold text-white"
-            style={{ background: PILL_TEXT }}
-            aria-hidden="true"
-          >
-            {initials(name)}
-          </span>
+          <Avatar name={name} image={profile?.avatar} className="h-full aspect-square text-[15px]" />
           <span className="hidden lg:inline text-[18px]">{name.split(/\s+/)[0]}</span>
           <ChevronDown
             size={18}
@@ -96,18 +94,16 @@ const AuthButton = () => {
             {email && <p className="text-[13px] text-white/60 truncate">{email}</p>}
           </div>
           <div className="flex flex-col gap-[3px]">
-            <a
+            <Link
               role="menuitem"
-              href={ACCOUNT_URL}
-              target="_blank"
-              rel="noopener noreferrer"
+              to="/konto"
               className={menuItemClasses}
               style={{ background: PILL_BG, color: PILL_TEXT }}
               onClick={() => setOpen(false)}
             >
               <UserCog size={18} aria-hidden="true" />
               Min konto
-            </a>
+            </Link>
             <button
               type="button"
               role="menuitem"
