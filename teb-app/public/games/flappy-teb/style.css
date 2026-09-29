@@ -70,6 +70,96 @@ body {
     background: #45a049;
 }
 
+#scoreboard {
+    width: 260px;
+    margin: 0 auto 20px;
+    text-align: left;
+}
+
+#scoreboard h3 {
+    font-size: 18px;
+    margin-bottom: 8px;
+    text-align: center;
+}
+
+#scoreboard ol {
+    list-style: none;
+}
+
+#scoreboard li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 10px;
+    border-radius: 8px;
+}
+
+#scoreboard li + li {
+    margin-top: 4px;
+}
+
+#scoreboard li.you {
+    background: rgba(255, 140, 66, 0.25);
+}
+
+#scoreboard .rank {
+    width: 14px;
+    font-weight: bold;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+#scoreboard .who {
+    flex: 1;
+    min-width: 0;
+}
+
+#scoreboard .name {
+    display: block;
+    font-weight: bold;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+#scoreboard .date {
+    display: block;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+#scoreboard .points {
+    font-size: 20px;
+    font-weight: bold;
+    color: #ff8c42;
+}
+
+#scoreboard .note {
+    font-size: 14px;
+    margin: 8px 0 0;
+    text-align: center;
+    color: rgba(255, 255, 255, 0.75);
+}
+
+#scoreboard .record {
+    font-size: 16px;
+    margin: 0 0 8px;
+    text-align: center;
+    font-weight: bold;
+    color: #7ee787;
+}
+
+#scoreboard .login {
+    display: block;
+    margin: 10px auto 0;
+    padding: 10px 22px;
+    font-size: 16px;
+    background: #ff8c42;
+    color: #1f2937;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
 .hidden {
     display: none;
 }
