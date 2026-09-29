@@ -5,7 +5,8 @@ import tailwindcss from '@tailwindcss/vite'
 
 // https://vite.dev/config/
 export default defineConfig({
-  base: './',
+  // Absolute, so assets still resolve on nested routes like /auth/callback
+  base: '/',
   plugins: [
     react(),
     babel({ presets: [reactCompilerPreset()] }),

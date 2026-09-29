@@ -1,5 +1,7 @@
 import { useLocation } from 'react-router-dom';
 import PillNav from './reactbits/PillNav';
+import AuthButton from './AuthButton';
+import AuthMenuItems from './AuthMenuItems';
 
 const Header = () => {
     const location = useLocation();
@@ -23,7 +25,12 @@ const Header = () => {
                     pillColor="#ff8c42"
                     hoveredPillTextColor="#ffffff"
                     pillTextColor="#1f2937"
+                    mobileMenuExtra={<AuthMenuItems />}
                 />
+            </div>
+            {/* On mobile the login lives in the hamburger menu instead, clear of the page title */}
+            <div className="hidden md:block absolute top-[1em] right-4 z-[1001]">
+                <AuthButton />
             </div>
         </header>
     );

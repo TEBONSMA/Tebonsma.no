@@ -20,6 +20,7 @@ export interface PillNavProps {
   hoveredPillTextColor?: string;
   pillTextColor?: string;
   onMobileMenuClick?: () => void;
+  mobileMenuExtra?: React.ReactNode;
 }
 
 const PillNav: React.FC<PillNavProps> = ({
@@ -34,6 +35,7 @@ const PillNav: React.FC<PillNavProps> = ({
   hoveredPillTextColor = '#060010',
   pillTextColor,
   onMobileMenuClick,
+  mobileMenuExtra,
 }) => {
   const resolvedPillTextColor = pillTextColor ?? baseColor;
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -488,6 +490,7 @@ const PillNav: React.FC<PillNavProps> = ({
               </li>
             );
           })}
+          {mobileMenuExtra}
         </ul>
       </div>
     </div>
