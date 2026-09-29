@@ -14,11 +14,14 @@ canvas.width = 400;
 canvas.height = 600;
 
 // Game settings
-const GRAVITY = 0.5;
-const JUMP_STRENGTH = -8;
+const GRAVITY = 0.4;
+const JUMP_STRENGTH = -7;
+const TERMINAL_VELOCITY = 8;
 const PIPE_WIDTH = 55;
 const PIPE_GAP = 150;
-const PIPE_SPEED = 2;
+const PIPE_SPEED = 1.5;
+const BIRD_WIDTH = 45;
+const BIRD_HEIGHT = 32;
 
 //Background music
 const bgMusicTracks = [
@@ -32,13 +35,24 @@ const bgMusicTracks = [
 
 let bgMusic = new Audio();
 bgMusic.loop = true;
-bgMusic.volume = 0.4;
+bgMusic.volume = 0.25;
 let musicStarted = false;
 
 function loadRandomBgMusic() {
     const randomIndex = Math.floor(Math.random() * bgMusicTracks.length);
     bgMusic.src = bgMusicTracks[randomIndex];
     bgMusic.load();
+}
+
+// Draw an image into an offscreen canvas sized to its on-screen target once,
+// so the (potentially multi-megapixel) source is only resampled a single
+// time instead of on every animation frame.
+function toScaledCanvas(img, width, height) {
+    const scaledCanvas = document.createElement('canvas');
+    scaledCanvas.width = width;
+    scaledCanvas.height = height;
+    scaledCanvas.getContext('2d').drawImage(img, 0, 0, width, height);
+    return scaledCanvas;
 }
 
 // Load image for Jarritos
@@ -54,15 +68,16 @@ const birdImages = [
     '/images/flappy/Flyt-smid.png',
     '/images/flappy/Full-anders.png'
 ];
-let currentBirdImg = new Image();
+let currentBirdImg = null;
 let currentBirdLoaded = false;
 
 function loadRandomBirdImage() {
     const randomIndex = Math.floor(Math.random() * birdImages.length);
-    currentBirdImg = new Image();
+    const img = new Image();
     currentBirdLoaded = false;
-    currentBirdImg.src = birdImages[randomIndex];
-    currentBirdImg.onload = () => {
+    img.src = birdImages[randomIndex];
+    img.onload = () => {
+        currentBirdImg = toScaledCanvas(img, BIRD_WIDTH, BIRD_HEIGHT);
         currentBirdLoaded = true;
     };
 }
@@ -110,39 +125,57 @@ const backgroundImages = [
     '/images/background/IMG_2768.JPG',
 ];
 
-let currentBgImage = new Image();
+let currentBgImage = null;
 let backgroundImgLoaded = false;
 
 function loadRandomBackgroundImage() {
     const randomIndex = Math.floor(Math.random() * backgroundImages.length);
-    currentBgImage = new Image();
+    const img = new Image();
     backgroundImgLoaded = false;
-    currentBgImage.src = backgroundImages[randomIndex];
-    currentBgImage.onload = () => {
+    img.src = backgroundImages[randomIndex];
+    img.onload = () => {
+        // These source photos are several megapixels; resample once here
+        // instead of rescaling them on every single animation frame.
+        currentBgImage = toScaledCanvas(img, canvas.width, canvas.height);
         backgroundImgLoaded = true;
     };
 }
 
-const groundImg = new Image();
-groundImg.src = '/images/flappy/Sidelengs-anders.jpg';
+const GROUND_HEIGHT = 50;
+let groundImg = null;
 let groundImgLoaded = false;
-groundImg.onload = () => {
-    groundImgLoaded = true;
-};
+{
+    const img = new Image();
+    img.src = '/images/flappy/Sidelengs-anders.jpg';
+    img.onload = () => {
+        groundImg = toScaledCanvas(img, canvas.width, GROUND_HEIGHT);
+        groundImgLoaded = true;
+    };
+}
 
 const crashSounds = [
     new Audio('/audio/gamesounds/ferdigno.mp3'),
     new Audio('/audio/gamesounds/herreguda.mp3'),
     new Audio('/audio/gamesounds/sugersjela.mp3')
 ];
+crashSounds.forEach(sound => { sound.volume = 0.7; });
 
 function playRandomCrashSound() {
     const randomIndex = Math.floor(Math.random() * crashSounds.length);
-    crashSounds[randomIndex].play();
+    const sound = crashSounds[randomIndex];
+    sound.currentTime = 0;
+    sound.play().catch(e => console.log('Audio play error:', e));
 }
 
 const sixSevenSound = new Audio('/audio/gamesounds/six-seven.mp3');
+sixSevenSound.volume = 0.8;
 const twentyOneSound = new Audio('/audio/gamesounds/21.wav');
+twentyOneSound.volume = 0.8;
+
+function playMilestoneSound(sound) {
+    sound.currentTime = 0;
+    sound.play().catch(e => console.log('Audio play error:', e));
+}
 
 
 // Brainrot GIFS
@@ -173,7 +206,7 @@ function loadRandomBrainrotGif() {
         randomIndex2 = Math.floor(Math.random() * brainrotGifs.length);
     }
 
-    const gifSize = 100;
+    const gifSize = 80;
     const minDistance = 120;
     
     // Generate first position
@@ -228,36 +261,45 @@ loadRandomBgMusic();
 const bird = {
     x: 80,
     y: canvas.height / 2,
-    width: 45,
-    height: 32,
+    width: BIRD_WIDTH,
+    height: BIRD_HEIGHT,
     velocity: 0,
     
     draw() {
+        // Tilt up on flap, tilt down as it falls - like the real Flappy Bird
+        const angle = Math.max(-25, Math.min(90, this.velocity * 4));
+        ctx.save();
+        ctx.translate(this.x + this.width / 2, this.y + this.height / 2);
+        ctx.rotate(angle * Math.PI / 180);
+
         if (currentBirdLoaded) {
-            ctx.drawImage(currentBirdImg, this.x, this.y, this.width, this.height);
+            ctx.drawImage(currentBirdImg, -this.width / 2, -this.height / 2, this.width, this.height);
         }
         else {
             ctx.fillStyle = '#FFD700';
-            ctx.fillRect(this.x, this.y, this.width, this.height);
-            
+            ctx.fillRect(-this.width / 2, -this.height / 2, this.width, this.height);
+
             // Eye
             ctx.fillStyle = '#000';
-            ctx.fillRect(this.x + 20, this.y + 5, 5, 5);
-            
+            ctx.fillRect(-this.width / 2 + 20, -this.height / 2 + 5, 5, 5);
+
             // Beak
             ctx.fillStyle = '#FF6347';
             ctx.beginPath();
-            ctx.moveTo(this.x + this.width, this.y + 10);
-            ctx.lineTo(this.x + this.width + 10, this.y + 12);
-            ctx.lineTo(this.x + this.width, this.y + 14);
+            ctx.moveTo(this.width / 2, -this.height / 2 + 10);
+            ctx.lineTo(this.width / 2 + 10, -this.height / 2 + 12);
+            ctx.lineTo(this.width / 2, -this.height / 2 + 14);
             ctx.fill();
         }
+
+        ctx.restore();
     },
-    
+
     update() {
         this.velocity += GRAVITY;
+        this.velocity = Math.min(this.velocity, TERMINAL_VELOCITY);
         this.y += this.velocity;
-        
+
         // Ground collision
         if (this.y + this.height > canvas.height - 50) {
             this.y = canvas.height - 50 - this.height;
@@ -266,7 +308,7 @@ const bird = {
                 endGame();
             }
         }
-        
+
         // Ceiling collision
         if (this.y < 0) {
             this.y = 0;
@@ -332,7 +374,7 @@ function drawPipes() {
 }
 
 function updatePipes() {
-    pipes.forEach((pipe, index) => {
+    pipes.forEach((pipe) => {
         pipe.x -= PIPE_SPEED;
 
         // Improve pipe collision border for better gameplay
@@ -351,7 +393,7 @@ function updatePipes() {
                     if (bird.x + bird.width > leftEdge && bird.x < rightEdge) {
                         endGame();
                     }
-                } 
+                }
                 // Bottle body (wider part)
                 else {
                     const leftEdge = pipeCenter - bottleBodyWidth / 2;
@@ -361,12 +403,12 @@ function updatePipes() {
                     }
                 }
             }
-            
+
             // Bottom pipe collision
             if (bird.y + bird.height > pipe.bottomY) {
                 const distanceFromBottom = (bird.y + bird.height) - pipe.bottomY;
                 const bottomPipeHeight = canvas.height - pipe.bottomY - 50;
-                
+
                 // Near the base (narrow part)
                 const neckHeight = bottomPipeHeight * 0.45;
                 if (distanceFromBottom < neckHeight) {
@@ -386,7 +428,7 @@ function updatePipes() {
                 }
             }
         }
-        
+
         // Score
         if (!pipe.scored && pipe.x + PIPE_WIDTH < bird.x) {
             pipe.scored = true;
@@ -400,45 +442,38 @@ function updatePipes() {
             } else if (score === 7) {
                 scoreElement.textContent = '7!';
                 scoreElement.style.fontSize = '100px';
-                sixSevenSound.currentTime = 0;
-                sixSevenSound.play();
-                sixSevenSound.play().catch(e => console.log('Audio play error:', e));
+                playMilestoneSound(sixSevenSound);
 
-                // Load and show brainrot gif for 3 seconds
+                // Load and show brainrot gif briefly
                 loadRandomBrainrotGif();
                 showBrainrotGif = true;
-                brainrotGifTimer = 180; // 3 seconds at 60fps
+                brainrotGifTimer = 150; // 2.5 seconds at 60fps
 
             } else if (score === 21) {
                 scoreElement.textContent = 'TWENNYONE!';
                 scoreElement.style.fontSize = '64px';
-                twentyOneSound.currentTime = 0;
-                twentyOneSound.play();
-                twentyOneSound.play().catch(e => console.log('Audio play error:', e));
+                playMilestoneSound(twentyOneSound);
             } else if (score === 67) {
                 scoreElement.textContent = 'SIX-SEVEN!';
                 scoreElement.style.fontSize = '150px';
-                sixSevenSound.currentTime = 0;
-                sixSevenSound.play();
-                sixSevenSound.play().catch(e => console.log('Audio play error:', e));
+                playMilestoneSound(sixSevenSound);
 
-                // Load and show brainrot gif for 3 seconds
+                // Load and show brainrot gif briefly
                 loadRandomBrainrotGif();
                 showBrainrotGif = true;
-                brainrotGifTimer = 180; // 3 seconds at 60fps
+                brainrotGifTimer = 150; // 2.5 seconds at 60fps
             } else {
                 scoreElement.style.fontSize = '48px';
             }
         }
         
-        // Remove off-screen pipes
-        if (pipe.x + PIPE_WIDTH < 0) {
-            pipes.splice(index, 1);
-        }
     });
-    
+
+    // Remove off-screen pipes
+    pipes = pipes.filter(pipe => pipe.x + PIPE_WIDTH >= 0);
+
     // Add new pipes
-    if (frames % 100 === 0) {
+    if (frames % 130 === 0) {
         createPipe();
     }
 }

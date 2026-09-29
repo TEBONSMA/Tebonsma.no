@@ -1,3 +1,11 @@
+@import "@fontsource/geist-sans/latin-400.css";
+@import "@fontsource/geist-sans/latin-500.css";
+@import "@fontsource/geist-sans/latin-600.css";
+@import "@fontsource/geist-sans/latin-700.css";
+@import "@fontsource/geist-sans/latin-800.css";
+@import "@fontsource/geist-mono/latin-400.css";
+@import "@fontsource/geist-mono/latin-500.css";
+@import "@fontsource/geist-mono/latin-600.css";
 @import "tailwindcss";
 @import "tw-animate-css";
 @tailwind base;
@@ -15,6 +23,9 @@
 
 @theme {
   --animate-spin-slow: spin-slow 8s linear infinite;
+  --font-sans: 'Geist Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'Geist Mono', ui-monospace, 'SF Mono', monospace;
+
   --color-teb-green: #006c34;
   --color-teb-green-light: #00a34f;
   --color-teb-green-dark: #004d25;
@@ -42,7 +53,7 @@
 }
 
 :root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-family: var(--font-sans);
   line-height: 1.5;
   font-weight: 400;
 }
@@ -52,7 +63,7 @@
 }
 
 html, body {
-  background-color: var(--color-navy);
+  background-color: #0a0a0a;
   color: rgba(255, 255, 255, 0.87);
   min-height: 100vh;
 overflow-x: hidden;

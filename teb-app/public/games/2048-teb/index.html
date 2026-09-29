@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2048 TEBONSMA</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="game-container">
+        <div class="header">
+            <h1 class="title">2048</h1>
+            <div class="scores">
+                <div class="score-box">
+                    <div class="score-label">Poeng</div>
+                    <div id="score">0</div>
+                </div>
+                <div class="score-box">
+                    <div class="score-label">Best</div>
+                    <div id="bestScore">0</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="board-wrapper">
+            <div id="board" class="board">
+                <div id="gridCells" class="grid-cells"></div>
+                <div id="tileContainer" class="tile-container"></div>
+            </div>
+
+            <div id="gameOver" class="overlay hidden">
+                <h2>Game Over!</h2>
+                <p>Poeng: <span id="finalScore">0</span></p>
+                <button id="restartBtn" class="btn">Spill igjen</button>
+            </div>
+
+            <div id="winOverlay" class="overlay hidden">
+                <h2>Du klarte det! 🎉</h2>
+                <p>Du nådde 2048!</p>
+                <div class="overlay-actions">
+                    <button id="continueBtn" class="btn btn-secondary">Fortsett</button>
+                    <button id="restartFromWinBtn" class="btn">Spill igjen</button>
+                </div>
+            </div>
+
+            <div id="startScreen" class="overlay">
+                <h2>2048 TEBONSMA</h2>
+                <p>Slå sammen bildene til du når 2048!<br>Bruk piltastene, WASD, eller sveip.</p>
+                <button id="startBtn" class="btn">Start</button>
+            </div>
+        </div>
+
+        <p class="hint">Trykk R for å starte på nytt</p>
+    </div>
+    <script src="game.js"></script>
+</body>
+</html>

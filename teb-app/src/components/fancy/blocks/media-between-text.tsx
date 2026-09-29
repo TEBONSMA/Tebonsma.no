@@ -169,10 +169,7 @@ export const MediaBetweenText = forwardRef<
     const componentRef = useRef<HTMLDivElement>(null)
     const [isAnimating, setIsAnimating] = useState(false)
 
-    const isInView =
-      triggerType === "inView"
-        ? useInView(componentRef || containerRef, useInViewOptionsProp)
-        : false
+    const isInView = useInView(componentRef || containerRef, useInViewOptionsProp)
     const [isHovered, setIsHovered] = useState(false)
 
     useImperativeHandle(ref, () => ({
@@ -189,6 +186,7 @@ export const MediaBetweenText = forwardRef<
             ? isAnimating
             : false
 
+    // `as` is expected to stay constant for a given instance, so recreating it here is safe.
     const TextComponent = motion.create(as)
 
     const mediaContent = (
@@ -221,6 +219,7 @@ export const MediaBetweenText = forwardRef<
         onMouseEnter={() => triggerType === "hover" && setIsHovered(true)}
         onMouseLeave={() => triggerType === "hover" && setIsHovered(false)}
       >
+        {/* eslint-disable-next-line react-hooks/static-components -- `as` is stable per instance */}
         <TextComponent layout className={leftTextClassName}>
           {firstText}
         </TextComponent>
@@ -243,6 +242,7 @@ export const MediaBetweenText = forwardRef<
             mediaContent
           )}
         </motion.div>
+        {/* eslint-disable-next-line react-hooks/static-components -- `as` is stable per instance */}
         <TextComponent layout className={rightTextClassName}>
           {secondText}
         </TextComponent>

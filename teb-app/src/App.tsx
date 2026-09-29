@@ -1,9 +1,11 @@
-import {BrowserRouter as Router, Routes, Route} from 'react-router-dom'
+import {BrowserRouter as Router, Routes, Route, Navigate} from 'react-router-dom'
 import { AuthProvider } from './auth/AuthProvider'
 import { ProfileProvider } from './account/ProfileProvider'
 import Home from './pages/Home'
 import About from './pages/About'
 import Contact from './pages/Contact'
+import Games from './pages/Games'
+import GamePlayer from './pages/GamePlayer'
 import FlappyGame from './pages/Flappygame'
 import AuthCallback from './pages/AuthCallback'
 import Konto from './pages/Konto'
@@ -19,7 +21,11 @@ function App() {
             <Route path="/" element={<Home />} />
             <Route path="/about" element={<About />} />
             <Route path="/contact" element={<Contact />} />
-            <Route path="/flappy" element={<FlappyGame />} />
+            <Route path="/games" element={<Games />} />
+            {/* Flappy has its own page so logged-in members' scores reach the scoreboard */}
+            <Route path="/games/flappy-teb" element={<FlappyGame />} />
+            <Route path="/games/:slug" element={<GamePlayer />} />
+            <Route path="/flappy" element={<Navigate to="/games/flappy-teb" replace />} />
             <Route path="/auth/callback" element={<AuthCallback />} />
             <Route path="/konto" element={<Konto />} />
           </Routes>
