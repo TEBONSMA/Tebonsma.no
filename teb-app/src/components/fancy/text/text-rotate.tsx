@@ -358,6 +358,7 @@ const TextRotate = forwardRef<TextRotateRef, TextRotateProps>(
     const MotionComponent = useMemo(() => motion.create(as ?? "p"), [as])
 
     return (
+      // eslint-disable-next-line react-hooks/static-components -- memoized per tag above, so it isn't recreated each render
       <MotionComponent
         className={cn("flex flex-wrap whitespace-pre-wrap", mainClassName)}
         transition={transition}
