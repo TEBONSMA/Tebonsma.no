@@ -1,21 +1,20 @@
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { KeyRound, ShieldCheck, Trash2, Upload } from 'lucide-react'
 import Avatar from '../components/Avatar'
-import Header from '../components/Header'
-import DarkVeil from '../components/reactbits/DarkVeil'
-import VariableFontHoverByRandomLetter from '../components/fancy/text/variable-font-hover-by-random-letter'
+import Badge from '../components/Badge'
+import Layout from '../components/Layout'
 import { useProfile } from '../account/ProfileContext'
 import { useAuth } from '../auth/AuthContext'
 import { ADMIN_GROUP, PASSWORD_URL, USER_ADMIN_URL } from '../auth/userManager'
 import { apiFetch, type Profile } from '../lib/api'
 
 const PILL =
-  'inline-flex items-center justify-center gap-2 rounded-full px-5 py-3 font-semibold cursor-pointer transition-[filter,background-color] duration-200 disabled:opacity-50 disabled:cursor-not-allowed'
-const PILL_PRIMARY = `${PILL} bg-[#ff8c42] text-[#1f2937] hover:brightness-110`
-const PILL_GHOST = `${PILL} border border-white/20 text-white hover:bg-white/10`
-const CARD = 'rounded-3xl border border-white/10 bg-black/40 backdrop-blur-md p-6 md:p-8 space-y-5'
+  'inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-semibold cursor-pointer transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
+const PILL_PRIMARY = `${PILL} bg-teb-orange text-white hover:bg-teb-orange-light`
+const PILL_GHOST = `${PILL} border border-white/10 text-white/80 hover:border-white/20 hover:text-white`
+const CARD = 'rounded-lg border border-white/10 bg-white/5 p-6 md:p-8 space-y-5'
 const INPUT =
-  'w-full rounded-2xl border border-white/15 bg-white/5 px-4 py-3 text-white placeholder-white/30 outline-none transition-colors focus:border-[#ff8c42]'
+  'w-full rounded-md border border-white/10 bg-white/5 px-4 py-2.5 text-white placeholder-white/30 outline-none transition-colors focus:border-teb-orange'
 const AVATAR_SIZE = 256
 
 const errorMessage = (err: unknown) => (err instanceof Error ? err.message : String(err))
@@ -248,25 +247,12 @@ export default function Konto() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen relative">
-      <div className="fixed inset-0 z-0">
-        <DarkVeil />
+    <Layout mainClassName="w-full max-w-2xl mx-auto px-4 pt-24 pb-16 space-y-6">
+      <div className="flex flex-col items-center gap-4 mb-6 text-center">
+        <Badge>Konto</Badge>
+        <h1 className="text-4xl md:text-6xl font-bold text-teb-orange tracking-tight">Min konto</h1>
       </div>
-
-      <Header />
-      <main className="relative z-10 flex-1 w-full max-w-2xl mx-auto px-4 pt-28 pb-16 space-y-6">
-        <div className="text-center">
-          <VariableFontHoverByRandomLetter
-            label="MIN KONTO"
-            className="text-5xl md:text-7xl font-bold text-teb-orange tracking-tight"
-            fromFontVariationSettings="'wght' 500"
-            toFontVariationSettings="'wght' 900"
-            staggerDuration={0.04}
-            transition={{ type: 'spring', stiffness: 500, damping: 20 }}
-          />
-        </div>
-        {content}
-      </main>
-    </div>
+      {content}
+    </Layout>
   )
 }

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Plus, Minus } from 'lucide-react'
+import SectionHeader from './SectionHeader'
 
 interface FAQItem {
   id: number
@@ -20,15 +21,11 @@ const FAQ = ({ items }: FAQProps) => {
 
   return (
     <div className="w-full max-w-4xl mx-auto px-4 py-16">
-      {/* Header */}
-      <div className="text-center mb-12">
-        <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
-          Ofte Stilte Spørsmål
-        </h2>
-        <p className="text-lg text-white/60">
-          Alt du trenger å vite om oss
-        </p>
-      </div>
+      <SectionHeader
+        eyebrow="FAQ"
+        title="Ofte Stilte Spørsmål"
+        subtitle="Alt du trenger å vite om oss"
+      />
 
       {/* FAQ Items */}
       <div className="space-y-4">

@@ -6,14 +6,11 @@ import { useAuth } from '../auth/AuthContext'
 import { displayName } from '../auth/profile'
 import Avatar from './Avatar'
 
-const PILL_BG = '#ff8c42'
-const PILL_TEXT = '#1f2937'
-
-const ringClasses = 'h-[52px] rounded-full p-[3px] backdrop-blur-sm bg-white/10 border border-white/20'
+const ringClasses = 'h-9'
 const pillClasses =
-  'h-full rounded-full inline-flex items-center gap-2 font-semibold uppercase tracking-[0.2px] cursor-pointer transition-[filter] duration-200 hover:brightness-110'
+  'h-full rounded-md inline-flex items-center gap-2 border border-white/10 text-sm font-semibold text-white cursor-pointer transition-colors hover:border-white/20 hover:bg-white/5'
 const menuItemClasses =
-  'flex w-full items-center gap-2 py-3 px-4 text-[16px] font-medium rounded-[50px] cursor-pointer transition-[filter] duration-200 hover:brightness-110'
+  'flex w-full items-center gap-2 py-2 px-3 text-sm font-medium text-white/80 rounded-md cursor-pointer transition-colors hover:bg-white/10 hover:text-white'
 
 // Shown from the md breakpoint up: a round button until lg, where there is room for text
 const AuthButton = () => {
@@ -47,10 +44,9 @@ const AuthButton = () => {
           type="button"
           onClick={() => login()}
           aria-label="Logg inn"
-          className={`${pillClasses} px-[12px] lg:px-[22px] text-[18px]`}
-          style={{ background: PILL_BG, color: PILL_TEXT }}
+          className={`${pillClasses} px-2.5 lg:px-4`}
         >
-          <LogIn size={20} aria-hidden="true" className="lg:hidden" />
+          <LogIn size={18} aria-hidden="true" className="lg:hidden" />
           <span className="hidden lg:inline">Logg inn</span>
         </button>
       </div>
@@ -70,13 +66,12 @@ const AuthButton = () => {
           aria-haspopup="menu"
           aria-expanded={open}
           aria-label={`Innlogget som ${name}`}
-          className={`${pillClasses} px-0 lg:pl-0 lg:pr-4`}
-          style={{ background: PILL_BG, color: PILL_TEXT }}
+          className={`${pillClasses} p-1 lg:pr-3`}
         >
-          <Avatar name={name} image={profile?.avatar} className="h-full aspect-square text-[15px]" />
-          <span className="hidden lg:inline text-[18px]">{name.split(/\s+/)[0]}</span>
+          <Avatar name={name} image={profile?.avatar} className="h-full aspect-square text-[12px]" />
+          <span className="hidden lg:inline">{name.split(/\s+/)[0]}</span>
           <ChevronDown
-            size={18}
+            size={16}
             aria-hidden="true"
             className={`hidden lg:block transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
           />
@@ -86,19 +81,17 @@ const AuthButton = () => {
       {open && (
         <div
           role="menu"
-          className="absolute right-0 top-[calc(100%+8px)] w-[240px] rounded-[27px] p-[3px] backdrop-blur-md border border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.35)]"
-          style={{ background: 'rgba(15, 14, 58, 0.85)' }}
+          className="absolute right-0 top-[calc(100%+8px)] w-[240px] rounded-lg p-1 bg-neutral-950/95 backdrop-blur-md border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.35)]"
         >
-          <div className="px-4 pt-2 pb-3">
+          <div className="px-3 pt-2 pb-2 mb-1 border-b border-white/10">
             <p className="font-semibold text-white truncate">{name}</p>
             {email && <p className="text-[13px] text-white/60 truncate">{email}</p>}
           </div>
-          <div className="flex flex-col gap-[3px]">
+          <div className="flex flex-col gap-0.5">
             <Link
               role="menuitem"
               to="/konto"
               className={menuItemClasses}
-              style={{ background: PILL_BG, color: PILL_TEXT }}
               onClick={() => setOpen(false)}
             >
               <UserCog size={18} aria-hidden="true" />
@@ -108,7 +101,6 @@ const AuthButton = () => {
               type="button"
               role="menuitem"
               className={menuItemClasses}
-              style={{ background: PILL_BG, color: PILL_TEXT }}
               onClick={() => logout()}
             >
               <LogOut size={18} aria-hidden="true" />

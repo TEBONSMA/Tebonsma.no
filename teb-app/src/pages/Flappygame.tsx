@@ -1,6 +1,5 @@
 import { useEffect, useRef } from 'react';
-import DarkVeil from '../components/reactbits/DarkVeil';
-import Header from '../components/Header';
+import Layout from '../components/Layout';
 import { useAuth } from '../auth/AuthContext';
 import { getLeaderboard, startRun, submitScore, type Leaderboard } from '../lib/flappy';
 
@@ -64,26 +63,15 @@ export default function FlappyGame() {
   }, [login]);
 
   return (
-    <div className="flex flex-col min-h-screen relative">
-      {/* Fixed DarkVeil background - same as Home */}
-      <div className="fixed inset-0 z-0">
-        <DarkVeil />
+    <Layout mainClassName="flex items-center justify-center p-4">
+      <div className="w-full max-w-[400px] aspect-[2/3]">
+        <iframe
+          ref={iframeRef}
+          src="/games/flappy-teb/index.html"
+          className="w-full h-full border-0 rounded-lg shadow-2xl"
+          title="Flappy TEBONSMA Game"
+        />
       </div>
-
-      {/* Header - on top */}
-      <Header />
-
-      {/* Game container - responsive */}
-      <main className="flex-1 flex items-center justify-center p-4 relative z-10">
-        <div className="w-full max-w-[400px] aspect-[2/3]">
-          <iframe
-            ref={iframeRef}
-            src="/games/flappy-teb/index.html"
-            className="w-full h-full border-0 rounded-lg shadow-2xl"
-            title="Flappy TEBONSMA Game"
-          />
-        </div>
-      </main>
-    </div>
+    </Layout>
   );
 }
