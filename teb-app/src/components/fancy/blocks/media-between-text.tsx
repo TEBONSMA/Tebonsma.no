@@ -1,4 +1,5 @@
-import { type ElementType, forwardRef, useImperativeHandle, useRef, useState } from "react"
+/* eslint-disable react-hooks/static-components -- the motion component for the "as" tag is memoized, so it isn't recreated each render */
+import { type ElementType, forwardRef, useImperativeHandle, useMemo, useRef, useState } from "react"
 import { motion, useInView, type UseInViewOptions, type Variants } from "motion/react"
 
 import { cn } from "../../../lib/utils"
@@ -169,7 +170,9 @@ export const MediaBetweenText = forwardRef<
     const componentRef = useRef<HTMLDivElement>(null)
     const [isAnimating, setIsAnimating] = useState(false)
 
-    const isInView = useInView(componentRef || containerRef, useInViewOptionsProp)
+    // Hooks must run on every render, so the result is only used for the inView trigger
+    const inView = useInView(componentRef || containerRef, useInViewOptionsProp)
+    const isInView = triggerType === "inView" ? inView : false
     const [isHovered, setIsHovered] = useState(false)
 
     useImperativeHandle(ref, () => ({
@@ -186,8 +189,7 @@ export const MediaBetweenText = forwardRef<
             ? isAnimating
             : false
 
-    // `as` is expected to stay constant for a given instance, so recreating it here is safe.
-    const TextComponent = motion.create(as)
+    const TextComponent = useMemo(() => motion.create(as), [as])
 
     const mediaContent = (
       <>
@@ -219,7 +221,6 @@ export const MediaBetweenText = forwardRef<
         onMouseEnter={() => triggerType === "hover" && setIsHovered(true)}
         onMouseLeave={() => triggerType === "hover" && setIsHovered(false)}
       >
-        {/* eslint-disable-next-line react-hooks/static-components -- `as` is stable per instance */}
         <TextComponent layout className={leftTextClassName}>
           {firstText}
         </TextComponent>
@@ -242,7 +243,6 @@ export const MediaBetweenText = forwardRef<
             mediaContent
           )}
         </motion.div>
-        {/* eslint-disable-next-line react-hooks/static-components -- `as` is stable per instance */}
         <TextComponent layout className={rightTextClassName}>
           {secondText}
         </TextComponent>

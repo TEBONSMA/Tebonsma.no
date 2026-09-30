@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    # This name is the status check to require in the branch rule for main
+    name: Lint and build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: teb-app
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: teb-app/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      # React refuses to start when these differ, which a build alone does not catch
+      - name: Check react and react-dom versions match
+        run: |
+          node -e "
+            const version = name => require(name + '/package.json').version
+            const react = version('react'), dom = version('react-dom')
+            if (react !== dom) {
+              console.error('react ' + react + ' and react-dom ' + dom + ' differ, so the site would show a blank page')
+              process.exit(1)
+            }
+            console.log('react and react-dom are both ' + react)
+          "
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Type-check and build
+        run: npm run build
