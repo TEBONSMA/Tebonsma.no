@@ -6,7 +6,6 @@ import About from './pages/About'
 import Contact from './pages/Contact'
 import Games from './pages/Games'
 import GamePlayer from './pages/GamePlayer'
-import FlappyGame from './pages/Flappygame'
 import AuthCallback from './pages/AuthCallback'
 import Konto from './pages/Konto'
 import './App.css'
@@ -22,8 +21,6 @@ function App() {
             <Route path="/about" element={<About />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/games" element={<Games />} />
-            {/* Flappy has its own page so logged-in members' scores reach the scoreboard */}
-            <Route path="/games/flappy-teb" element={<FlappyGame />} />
             <Route path="/games/:slug" element={<GamePlayer />} />
             <Route path="/flappy" element={<Navigate to="/games/flappy-teb" replace />} />
             <Route path="/auth/callback" element={<AuthCallback />} />

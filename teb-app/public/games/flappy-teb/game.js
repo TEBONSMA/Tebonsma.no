@@ -5,7 +5,6 @@ const gameOverScreen = document.getElementById('gameOver');
 const startScreen = document.getElementById('startScreen');
 const finalScoreElement = document.getElementById('finalScore');
 const restartBtn = document.getElementById('restartBtn');
-const scoreboardElement = document.getElementById('scoreboard');
 const gif1Element = document.getElementById('gif1');
 const gif2Element = document.getElementById('gif2');
 
@@ -506,70 +505,8 @@ function drawBackground() {
     }
 }
 
-// Tell the surrounding page (tebonsma.no/flappy) about runs so it can record scores
-function notifyPage(message) {
-    if (window.parent !== window) {
-        window.parent.postMessage(message, window.location.origin);
-    }
-}
-
-function textElement(tag, text, className) {
-    const element = document.createElement(tag);
-    element.textContent = text;
-    if (className) element.className = className;
-    return element;
-}
-
-// Fills the game-over screen with the page's answer to a finished run. Names come from
-// members' profiles, so everything is inserted as text, never as HTML.
-function renderScoreboard(message) {
-    scoreboardElement.replaceChildren();
-    scoreboardElement.classList.remove('hidden');
-
-    if (message.state === 'saving') {
-        scoreboardElement.append(textElement('p', 'Lagrer resultatet…', 'note'));
-    } else if (message.state === 'error') {
-        scoreboardElement.append(textElement('p', message.error, 'note'));
-    } else if (message.state === 'login') {
-        const loginButton = textElement('button', 'Logg inn', 'login');
-        loginButton.addEventListener('click', () => notifyPage({ type: 'flappy:login' }));
-        scoreboardElement.append(textElement('p', 'Logg inn for å komme på topplisten.', 'note'), loginButton);
-    } else if (message.state === 'board') {
-        const { top, you } = message.board;
-        if (message.newBest) scoreboardElement.append(textElement('p', 'Ny rekord!', 'record'));
-        scoreboardElement.append(textElement('h3', 'Toppliste'));
-        if (top.length === 0) {
-            scoreboardElement.append(textElement('p', 'Ingen resultater ennå.', 'note'));
-        }
-        const list = document.createElement('ol');
-        top.forEach((entry, i) => {
-            const row = document.createElement('li');
-            if (entry.isYou) row.className = 'you';
-            const who = document.createElement('span');
-            who.className = 'who';
-            who.append(
-                textElement('span', entry.name, 'name'),
-                textElement('span', new Date(entry.date).toLocaleDateString('nb-NO'), 'date'),
-            );
-            row.append(textElement('span', String(i + 1), 'rank'), who, textElement('span', String(entry.score), 'points'));
-            list.append(row);
-        });
-        scoreboardElement.append(list);
-        if (you && !top.some(entry => entry.isYou)) {
-            scoreboardElement.append(textElement('p', `Din rekord: ${you.score} (nr. ${you.rank})`, 'note'));
-        }
-    }
-}
-
-window.addEventListener('message', (event) => {
-    if (event.origin !== window.location.origin || event.source !== window.parent) return;
-    if (event.data && event.data.type === 'flappy:scoreboard') renderScoreboard(event.data);
-});
-
 function startGame() {
-    notifyPage({ type: 'flappy:start' });
-    scoreboardElement.classList.add('hidden');
-    scoreboardElement.replaceChildren();
+    Scoreboard.runStarted();
     gameState = 'playing';
     score = 0;
     frames = 0;
@@ -601,7 +538,7 @@ function endGame() {
     // Play random crash sound
     playRandomCrashSound();
 
-    notifyPage({ type: 'flappy:gameover', score });
+    Scoreboard.runEnded(score);
 }
 
 // The game advances in fixed steps of 1/60 s regardless of the screen's refresh rate,

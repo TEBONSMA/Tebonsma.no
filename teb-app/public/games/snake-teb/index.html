@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Snake TEBONSMA</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="../shared/scoreboard.css">
 </head>
 <body>
     <div class="game-container">
@@ -13,6 +14,7 @@
         <div id="gameOver" class="hidden">
             <h2>Game Over!</h2>
             <p>Score: <span id="finalScore">0</span></p>
+            <div id="scoreboard" class="hidden"></div>
             <button id="restartBtn">Play Again</button>
         </div>
         <div id="startScreen">
@@ -22,6 +24,7 @@
         <img id="gif1" class="celebration-gif hidden" src="" alt="">
         <img id="gif2" class="celebration-gif hidden" src="" alt="">
     </div>
+    <script src="../shared/scoreboard.js"></script>
     <script src="game.js"></script>
 </body>
 </html>

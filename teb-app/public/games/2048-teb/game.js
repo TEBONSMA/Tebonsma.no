@@ -323,10 +323,17 @@ function checkEndConditions() {
         gameState = 'gameOver';
         finalScoreEl.textContent = score;
         gameOverEl.classList.remove('hidden');
+        Scoreboard.runEnded(score);
     }
 }
 
 function startGame() {
+    // Restarting in the middle of a game still counts the points earned so far
+    if ((gameState === 'playing' || gameState === 'won') && score > 0) {
+        Scoreboard.runEnded(score, { silent: true });
+    }
+    Scoreboard.runStarted();
+
     cells = createEmptyGrid();
     clearBoardDom();
     nextId = 1;
