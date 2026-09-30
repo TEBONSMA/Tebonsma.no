@@ -260,15 +260,18 @@ loadRandomBgMusic();
 const bird = {
     x: 80,
     y: canvas.height / 2,
+    prevY: canvas.height / 2,
     width: BIRD_WIDTH,
     height: BIRD_HEIGHT,
     velocity: 0,
-    
-    draw() {
+
+    // blend: how far this frame is between the previous game step (0) and the current one (1)
+    draw(blend) {
         // Tilt up on flap, tilt down as it falls - like the real Flappy Bird
         const angle = Math.max(-25, Math.min(90, this.velocity * 4));
+        const y = this.prevY + (this.y - this.prevY) * blend;
         ctx.save();
-        ctx.translate(this.x + this.width / 2, this.y + this.height / 2);
+        ctx.translate(this.x + this.width / 2, y + this.height / 2);
         ctx.rotate(angle * Math.PI / 180);
 
         if (currentBirdLoaded) {
@@ -295,6 +298,7 @@ const bird = {
     },
 
     update() {
+        this.prevY = this.y;
         this.velocity += GRAVITY;
         this.velocity = Math.min(this.velocity, TERMINAL_VELOCITY);
         this.y += this.velocity;
@@ -321,6 +325,7 @@ const bird = {
     
     reset() {
         this.y = canvas.height / 2;
+        this.prevY = this.y;
         this.velocity = 0;
     }
 };
@@ -335,37 +340,39 @@ function createPipe() {
     
     pipes.push({
         x: canvas.width,
+        prevX: canvas.width,
         topHeight: height,
         bottomY: height + PIPE_GAP,
         scored: false
     });
 }
 
-function drawPipes() {
+function drawPipes(blend) {
     ctx.fillStyle = '#5CB85C';
-    
+
     pipes.forEach(pipe => {
+        const x = pipe.prevX + (pipe.x - pipe.prevX) * blend;
         if (jarritosLoaded) {
             // Top pipe - stretch single bottle upside down
             ctx.save();
-            ctx.translate(pipe.x + PIPE_WIDTH / 2, pipe.topHeight / 2);
+            ctx.translate(x + PIPE_WIDTH / 2, pipe.topHeight / 2);
             ctx.rotate(Math.PI);
             ctx.drawImage(jarritosImg, -PIPE_WIDTH / 2, -pipe.topHeight / 2, PIPE_WIDTH, pipe.topHeight);
             ctx.restore();
 
             // Bottom pipe - stretch single bottle
             const bottomHeight = canvas.height - pipe.bottomY - 50;
-            ctx.drawImage(jarritosImg, pipe.x, pipe.bottomY, PIPE_WIDTH, bottomHeight);
+            ctx.drawImage(jarritosImg, x, pipe.bottomY, PIPE_WIDTH, bottomHeight);
         } else {
             // Fallback rectangles if image not loaded
             ctx.fillStyle = '#5CB85C';
-            ctx.fillRect(pipe.x, 0, PIPE_WIDTH, pipe.topHeight);
-            ctx.fillRect(pipe.x, pipe.bottomY, PIPE_WIDTH, canvas.height - pipe.bottomY - 50);
+            ctx.fillRect(x, 0, PIPE_WIDTH, pipe.topHeight);
+            ctx.fillRect(x, pipe.bottomY, PIPE_WIDTH, canvas.height - pipe.bottomY - 50);
             // Pipe borders
             ctx.strokeStyle = '#2E7D32';
             ctx.lineWidth = 3;
-            ctx.strokeRect(pipe.x, 0, PIPE_WIDTH, pipe.topHeight);
-            ctx.strokeRect(pipe.x, pipe.bottomY, PIPE_WIDTH, canvas.height - pipe.bottomY - 50);
+            ctx.strokeRect(x, 0, PIPE_WIDTH, pipe.topHeight);
+            ctx.strokeRect(x, pipe.bottomY, PIPE_WIDTH, canvas.height - pipe.bottomY - 50);
         }
         
         
@@ -374,6 +381,7 @@ function drawPipes() {
 
 function updatePipes() {
     pipes.forEach((pipe) => {
+        pipe.prevX = pipe.x;
         pipe.x -= PIPE_SPEED;
 
         // Improve pipe collision border for better gameplay
@@ -575,10 +583,14 @@ function gameLoop(now) {
         pendingMs -= STEP_MS;
     }
 
+    // Screens that refresh faster than the game steps would show the same position several
+    // frames in a row, which looks jerky. Drawing between the last two steps keeps it smooth.
+    const blend = gameState === 'playing' ? pendingMs / STEP_MS : 1;
+
     drawBackground();
     drawGround();
-    drawPipes();
-    bird.draw();
+    drawPipes(blend);
+    bird.draw(blend);
 
     requestAnimationFrame(gameLoop);
 }
