@@ -18,7 +18,6 @@ export default function GamePlayer() {
   const token = user?.access_token
   const iframeRef = useRef<HTMLIFrameElement>(null)
   const tokenRef = useRef(token)
-  const runRef = useRef<Promise<string> | null>(null)
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -32,7 +31,12 @@ export default function GamePlayer() {
   // go to the API, and the scoreboard is sent back for the game-over screen.
   useEffect(() => {
     if (!gameSlug) return
-    runRef.current = null
+
+    // The run in progress. runNumber goes up whenever a run starts or this game is left, so
+    // an answer that arrives late can tell that it no longer belongs on the screen.
+    let ticket: Promise<string> | null = null
+    let runOpen = false
+    let runNumber = 0
 
     const frame = () => iframeRef.current?.contentWindow
     const send = (message: ScoreboardMessage) =>
@@ -46,11 +50,16 @@ export default function GamePlayer() {
       if (data.type === 'game:login') {
         login()
       } else if (data.type === 'game:start') {
-        runRef.current = current ? startRun(current, gameSlug) : null
-        runRef.current?.catch(() => {}) // Reported when the score is submitted
+        runNumber++
+        runOpen = true
+        ticket = current ? startRun(current, gameSlug) : null
+        ticket?.catch(() => {}) // Reported when the score is submitted
       } else if (data.type === 'game:gameover' && typeof data.score === 'number') {
-        const run = runRef.current
-        runRef.current = null
+        // A run ends once; a repeated game-over for the same run is ignored
+        if (!runOpen) return
+        runOpen = false
+        const run = ticket
+        ticket = null
         const score = data.score
 
         // A silent end is a run that was restarted, so there is no game-over screen to update
@@ -65,17 +74,24 @@ export default function GamePlayer() {
           return
         }
         send({ state: 'saving' })
+        const endedRun = runNumber
+        const sendIfCurrent = (message: ScoreboardMessage) => {
+          if (runNumber === endedRun) send(message)
+        }
         const saved =
           run && score > 0
             ? run.then(runId => submitScore(current, gameSlug, runId, score))
             : getLeaderboard(current, gameSlug).then(board => ({ newBest: false, leaderboard: board }))
         saved
-          .then(result => send({ state: 'board', board: result.leaderboard, newBest: result.newBest }))
-          .catch(err => send({ state: 'error', error: `Resultatet ble ikke lagret: ${err.message}` }))
+          .then(result => sendIfCurrent({ state: 'board', board: result.leaderboard, newBest: result.newBest }))
+          .catch(err => sendIfCurrent({ state: 'error', error: `Resultatet ble ikke lagret: ${err.message}` }))
       }
     }
     window.addEventListener('message', onMessage)
-    return () => window.removeEventListener('message', onMessage)
+    return () => {
+      window.removeEventListener('message', onMessage)
+      runNumber++ // Answers still on their way belong to a game that is no longer open
+    }
   }, [gameSlug, login])
 
   if (!game) {

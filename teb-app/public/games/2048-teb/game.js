@@ -86,6 +86,7 @@ let score = 0;
 let best = 0;
 let gameState = 'start'; // 'start' | 'playing' | 'won' | 'gameOver'
 let hasWon = false;
+let gameNumber = 0; // lets a move's delayed follow-up tell whether its game is still the current one
 
 const BEST_SCORE_KEY = 'teb-2048-best';
 
@@ -281,7 +282,11 @@ function performMove(direction) {
         saveBest();
     }
 
+    const movedInGame = gameNumber;
     setTimeout(() => {
+        // Quick moves leave several of these waiting; the game may have ended or been
+        // restarted before this one runs
+        if (movedInGame !== gameNumber || gameState === 'gameOver') return;
         const spawned = addRandomTile();
         if (spawned) createTileElement(spawned.tile, spawned.row, spawned.col, true);
         checkEndConditions();
@@ -306,6 +311,9 @@ function cellValueAt(row, col) {
 }
 
 function checkEndConditions() {
+    // A game ends once, so the run is only reported once
+    if (gameState === 'gameOver') return;
+
     if (!hasWon) {
         for (let row = 0; row < SIZE; row++) {
             for (let col = 0; col < SIZE; col++) {
@@ -334,6 +342,7 @@ function startGame() {
     }
     Scoreboard.runStarted();
 
+    gameNumber++;
     cells = createEmptyGrid();
     clearBoardDom();
     nextId = 1;
