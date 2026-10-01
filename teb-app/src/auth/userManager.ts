@@ -1,6 +1,7 @@
 import { UserManager, WebStorageStateStore } from 'oidc-client-ts'
 
-export const AUTHORITY = 'https://auth.tebonsma.no'
+// Overridden in local development to point at the API repo's mock login (npm run dev:mock)
+export const AUTHORITY = (import.meta.env.VITE_AUTH_AUTHORITY ?? 'https://auth.tebonsma.no').replace(/\/$/, '')
 // Authelia's own settings page has the change-password dialog
 export const PASSWORD_URL = `${AUTHORITY}/settings/security`
 // LLDAP's admin UI, still used for managing users and groups
