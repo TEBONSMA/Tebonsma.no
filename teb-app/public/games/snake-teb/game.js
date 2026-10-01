@@ -435,6 +435,7 @@ function updateSnake() {
 }
 
 function startGame() {
+    Scoreboard.runStarted();
     gameState = 'playing';
     score = 0;
     moveIntervalMs = START_MOVE_INTERVAL_MS;
@@ -468,6 +469,8 @@ function endGame() {
 
     // Play random crash sound
     playRandomCrashSound();
+
+    Scoreboard.runEnded(score);
 }
 
 function gameLoop(timestamp) {

@@ -5,7 +5,6 @@ const gameOverScreen = document.getElementById('gameOver');
 const startScreen = document.getElementById('startScreen');
 const finalScoreElement = document.getElementById('finalScore');
 const restartBtn = document.getElementById('restartBtn');
-const scoreboardElement = document.getElementById('scoreboard');
 const gif1Element = document.getElementById('gif1');
 const gif2Element = document.getElementById('gif2');
 
@@ -261,15 +260,18 @@ loadRandomBgMusic();
 const bird = {
     x: 80,
     y: canvas.height / 2,
+    prevY: canvas.height / 2,
     width: BIRD_WIDTH,
     height: BIRD_HEIGHT,
     velocity: 0,
-    
-    draw() {
+
+    // blend: how far this frame is between the previous game step (0) and the current one (1)
+    draw(blend) {
         // Tilt up on flap, tilt down as it falls - like the real Flappy Bird
         const angle = Math.max(-25, Math.min(90, this.velocity * 4));
+        const y = this.prevY + (this.y - this.prevY) * blend;
         ctx.save();
-        ctx.translate(this.x + this.width / 2, this.y + this.height / 2);
+        ctx.translate(this.x + this.width / 2, y + this.height / 2);
         ctx.rotate(angle * Math.PI / 180);
 
         if (currentBirdLoaded) {
@@ -296,6 +298,7 @@ const bird = {
     },
 
     update() {
+        this.prevY = this.y;
         this.velocity += GRAVITY;
         this.velocity = Math.min(this.velocity, TERMINAL_VELOCITY);
         this.y += this.velocity;
@@ -322,6 +325,7 @@ const bird = {
     
     reset() {
         this.y = canvas.height / 2;
+        this.prevY = this.y;
         this.velocity = 0;
     }
 };
@@ -336,37 +340,39 @@ function createPipe() {
     
     pipes.push({
         x: canvas.width,
+        prevX: canvas.width,
         topHeight: height,
         bottomY: height + PIPE_GAP,
         scored: false
     });
 }
 
-function drawPipes() {
+function drawPipes(blend) {
     ctx.fillStyle = '#5CB85C';
-    
+
     pipes.forEach(pipe => {
+        const x = pipe.prevX + (pipe.x - pipe.prevX) * blend;
         if (jarritosLoaded) {
             // Top pipe - stretch single bottle upside down
             ctx.save();
-            ctx.translate(pipe.x + PIPE_WIDTH / 2, pipe.topHeight / 2);
+            ctx.translate(x + PIPE_WIDTH / 2, pipe.topHeight / 2);
             ctx.rotate(Math.PI);
             ctx.drawImage(jarritosImg, -PIPE_WIDTH / 2, -pipe.topHeight / 2, PIPE_WIDTH, pipe.topHeight);
             ctx.restore();
 
             // Bottom pipe - stretch single bottle
             const bottomHeight = canvas.height - pipe.bottomY - 50;
-            ctx.drawImage(jarritosImg, pipe.x, pipe.bottomY, PIPE_WIDTH, bottomHeight);
+            ctx.drawImage(jarritosImg, x, pipe.bottomY, PIPE_WIDTH, bottomHeight);
         } else {
             // Fallback rectangles if image not loaded
             ctx.fillStyle = '#5CB85C';
-            ctx.fillRect(pipe.x, 0, PIPE_WIDTH, pipe.topHeight);
-            ctx.fillRect(pipe.x, pipe.bottomY, PIPE_WIDTH, canvas.height - pipe.bottomY - 50);
+            ctx.fillRect(x, 0, PIPE_WIDTH, pipe.topHeight);
+            ctx.fillRect(x, pipe.bottomY, PIPE_WIDTH, canvas.height - pipe.bottomY - 50);
             // Pipe borders
             ctx.strokeStyle = '#2E7D32';
             ctx.lineWidth = 3;
-            ctx.strokeRect(pipe.x, 0, PIPE_WIDTH, pipe.topHeight);
-            ctx.strokeRect(pipe.x, pipe.bottomY, PIPE_WIDTH, canvas.height - pipe.bottomY - 50);
+            ctx.strokeRect(x, 0, PIPE_WIDTH, pipe.topHeight);
+            ctx.strokeRect(x, pipe.bottomY, PIPE_WIDTH, canvas.height - pipe.bottomY - 50);
         }
         
         
@@ -375,6 +381,7 @@ function drawPipes() {
 
 function updatePipes() {
     pipes.forEach((pipe) => {
+        pipe.prevX = pipe.x;
         pipe.x -= PIPE_SPEED;
 
         // Improve pipe collision border for better gameplay
@@ -506,70 +513,8 @@ function drawBackground() {
     }
 }
 
-// Tell the surrounding page (tebonsma.no/flappy) about runs so it can record scores
-function notifyPage(message) {
-    if (window.parent !== window) {
-        window.parent.postMessage(message, window.location.origin);
-    }
-}
-
-function textElement(tag, text, className) {
-    const element = document.createElement(tag);
-    element.textContent = text;
-    if (className) element.className = className;
-    return element;
-}
-
-// Fills the game-over screen with the page's answer to a finished run. Names come from
-// members' profiles, so everything is inserted as text, never as HTML.
-function renderScoreboard(message) {
-    scoreboardElement.replaceChildren();
-    scoreboardElement.classList.remove('hidden');
-
-    if (message.state === 'saving') {
-        scoreboardElement.append(textElement('p', 'Lagrer resultatet…', 'note'));
-    } else if (message.state === 'error') {
-        scoreboardElement.append(textElement('p', message.error, 'note'));
-    } else if (message.state === 'login') {
-        const loginButton = textElement('button', 'Logg inn', 'login');
-        loginButton.addEventListener('click', () => notifyPage({ type: 'flappy:login' }));
-        scoreboardElement.append(textElement('p', 'Logg inn for å komme på topplisten.', 'note'), loginButton);
-    } else if (message.state === 'board') {
-        const { top, you } = message.board;
-        if (message.newBest) scoreboardElement.append(textElement('p', 'Ny rekord!', 'record'));
-        scoreboardElement.append(textElement('h3', 'Toppliste'));
-        if (top.length === 0) {
-            scoreboardElement.append(textElement('p', 'Ingen resultater ennå.', 'note'));
-        }
-        const list = document.createElement('ol');
-        top.forEach((entry, i) => {
-            const row = document.createElement('li');
-            if (entry.isYou) row.className = 'you';
-            const who = document.createElement('span');
-            who.className = 'who';
-            who.append(
-                textElement('span', entry.name, 'name'),
-                textElement('span', new Date(entry.date).toLocaleDateString('nb-NO'), 'date'),
-            );
-            row.append(textElement('span', String(i + 1), 'rank'), who, textElement('span', String(entry.score), 'points'));
-            list.append(row);
-        });
-        scoreboardElement.append(list);
-        if (you && !top.some(entry => entry.isYou)) {
-            scoreboardElement.append(textElement('p', `Din rekord: ${you.score} (nr. ${you.rank})`, 'note'));
-        }
-    }
-}
-
-window.addEventListener('message', (event) => {
-    if (event.origin !== window.location.origin || event.source !== window.parent) return;
-    if (event.data && event.data.type === 'flappy:scoreboard') renderScoreboard(event.data);
-});
-
 function startGame() {
-    notifyPage({ type: 'flappy:start' });
-    scoreboardElement.classList.add('hidden');
-    scoreboardElement.replaceChildren();
+    Scoreboard.runStarted();
     gameState = 'playing';
     score = 0;
     frames = 0;
@@ -601,7 +546,7 @@ function endGame() {
     // Play random crash sound
     playRandomCrashSound();
 
-    notifyPage({ type: 'flappy:gameover', score });
+    Scoreboard.runEnded(score);
 }
 
 // The game advances in fixed steps of 1/60 s regardless of the screen's refresh rate,
@@ -638,10 +583,14 @@ function gameLoop(now) {
         pendingMs -= STEP_MS;
     }
 
+    // Screens that refresh faster than the game steps would show the same position several
+    // frames in a row, which looks jerky. Drawing between the last two steps keeps it smooth.
+    const blend = gameState === 'playing' ? pendingMs / STEP_MS : 1;
+
     drawBackground();
     drawGround();
-    drawPipes();
-    bird.draw();
+    drawPipes(blend);
+    bird.draw(blend);
 
     requestAnimationFrame(gameLoop);
 }

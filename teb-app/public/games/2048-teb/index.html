@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>2048 TEBONSMA</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="../shared/scoreboard.css">
 </head>
 <body>
     <div class="game-container">
@@ -31,6 +32,7 @@
             <div id="gameOver" class="overlay hidden">
                 <h2>Game Over!</h2>
                 <p>Poeng: <span id="finalScore">0</span></p>
+                <div id="scoreboard" class="hidden"></div>
                 <button id="restartBtn" class="btn">Spill igjen</button>
             </div>
 
@@ -52,6 +54,7 @@
 
         <p class="hint">Trykk R for å starte på nytt</p>
     </div>
+    <script src="../shared/scoreboard.js"></script>
     <script src="game.js"></script>
 </body>
 </html>
