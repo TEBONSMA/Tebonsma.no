@@ -5,7 +5,6 @@ import Badge from '../components/Badge'
 import MediaBetweenText from '../components/fancy/blocks/media-between-text'
 import WallOfLove from '../components/WallOfLove'
 import EventsSection from '../components/EventsSection'
-import { events } from '../lib/events'
 import FAQ from '../components/FAQ'
 import Reveal from '../components/Reveal'
 import FeedPreview from '../components/feed/FeedPreview'
@@ -59,12 +58,12 @@ const Home = () => {
           En eksklusiv vennegjeng dedikert til ærlighet, transparens og uforglemmelige arrangementer.
         </p>
         <div className="flex flex-col sm:flex-row items-center gap-4 pt-2">
-          <a
-            href="#arrangementer"
+          <Link
+            to="/kalender"
             className="inline-flex items-center justify-center rounded-md bg-teb-orange px-6 py-3 text-sm font-semibold text-white hover:bg-teb-orange-light transition-colors"
           >
             Se arrangementer
-          </a>
+          </Link>
           <Link
             to="/about"
             className="inline-flex items-center justify-center rounded-md border border-white/20 px-6 py-3 text-sm font-semibold text-white hover:border-white/40 transition-colors"
@@ -78,11 +77,9 @@ const Home = () => {
       <FeedPreview />
 
       {/* Events */}
-      <div id="arrangementer" className="w-full scroll-mt-24">
-        <Reveal className="w-full">
-          <EventsSection events={events} />
-        </Reveal>
-      </div>
+      <Reveal className="w-full">
+        <EventsSection />
+      </Reveal>
 
       {/* FAQ Section */}
       <Reveal className="w-full">

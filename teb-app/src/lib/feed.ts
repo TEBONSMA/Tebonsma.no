@@ -24,6 +24,26 @@ export interface Poll {
   myVote: string | null
 }
 
+export type Answer = 'yes' | 'no'
+
+export interface Rsvp {
+  yes: number
+  no: number
+  mine: Answer | null
+}
+
+// What makes a post an event. Times are missing until a date is set.
+export interface EventDetails {
+  title: string
+  location: string
+  startsAt: string | null
+  endsAt: string | null
+  // Only on closed events, and only for members
+  rsvp: Rsvp | null
+}
+
+export type EventInput = Omit<EventDetails, 'rsvp'>
+
 export interface Post {
   id: string
   author: FeedMember
@@ -34,6 +54,7 @@ export interface Post {
   pinned: boolean
   attachments: Attachment[]
   poll: Poll | null
+  event: EventDetails | null
   likeCount: number
   liked: boolean
   commentCount: number
@@ -47,6 +68,7 @@ export interface Comment {
   // Empty for a deleted comment that is kept because it has replies
   author: FeedMember | null
   body: string
+  attachments: Attachment[]
   createdAt: string
   deleted: boolean
   likeCount: number
@@ -66,10 +88,11 @@ export interface Report {
 
 export interface Notification {
   id: string
-  kind: 'comment' | 'reply'
+  // The last two go to every member: a new event, and a message from its organizer
+  kind: 'comment' | 'reply' | 'event' | 'announcement'
   actor: FeedMember
   postId: string
-  commentId: string
+  commentId: string | null
   excerpt: string
   createdAt: string
   read: boolean
@@ -80,6 +103,7 @@ export interface PostInput {
   visibility: Visibility
   attachmentIds: string[]
   pollOptions?: string[]
+  event?: EventInput
 }
 
 export const SORTS = [
@@ -93,20 +117,21 @@ export type Sort = (typeof SORTS)[number]['value']
 export const MAX_POST_LENGTH = 5000
 export const MAX_COMMENT_LENGTH = 2000
 export const MAX_ATTACHMENTS = 10
+export const MAX_COMMENT_ATTACHMENTS = 4
 export const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024
 export const MAX_POLL_OPTIONS = 6
 export const MAX_POLL_OPTION_LENGTH = 80
 
 type Token = string | null | undefined
 
-const json = (method: string, body?: unknown): RequestInit => ({
+export const json = (method: string, body?: unknown): RequestInit => ({
   method,
   ...(body !== undefined && { body: JSON.stringify(body) }),
 })
 
 // Reading works for visitors too, so a login that has run out shows the public feed
 // instead of an error
-async function asVisitorIfExpired<T>(token: Token, read: (token: Token) => Promise<T>) {
+export async function asVisitorIfExpired<T>(token: Token, read: (token: Token) => Promise<T>) {
   try {
     return await read(token)
   } catch (err) {
@@ -152,8 +177,8 @@ export const dismissReports = (token: string, id: string) =>
 export const listComments = (token: Token, postId: string) =>
   asVisitorIfExpired(token, t => apiFetch<Comment[]>(`/feed/posts/${postId}/comments`, t))
 
-export const addComment = (token: string, postId: string, body: string, parentId: string | null) =>
-  apiFetch<Comment>(`/feed/posts/${postId}/comments`, token, json('POST', { body, parentId }))
+export const addComment = (token: string, postId: string, body: string, parentId: string | null, attachmentIds: string[] = []) =>
+  apiFetch<Comment>(`/feed/posts/${postId}/comments`, token, json('POST', { body, parentId, attachmentIds }))
 
 export const deleteComment = (token: string, id: string) => apiFetch<unknown>(`/feed/comments/${id}`, token, json('DELETE'))
 

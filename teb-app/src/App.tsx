@@ -10,6 +10,7 @@ import AuthCallback from './pages/AuthCallback'
 import Konto from './pages/Konto'
 import Feed from './pages/Feed'
 import FeedPost from './pages/FeedPost'
+import Kalender from './pages/Kalender'
 import './App.css'
 
 function App() {
@@ -29,6 +30,7 @@ function App() {
             <Route path="/konto" element={<Konto />} />
             <Route path="/feed" element={<Feed />} />
             <Route path="/feed/:id" element={<FeedPost />} />
+            <Route path="/kalender" element={<Kalender />} />
           </Routes>
         </ProfileProvider>
       </AuthProvider>

@@ -1,5 +1,5 @@
-import { useEffect, useState, type FormEvent } from 'react'
-import { Send } from 'lucide-react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { ImagePlus, Send } from 'lucide-react'
 import Avatar from '../Avatar'
 import { cn } from '../../lib/utils'
 import { useAuth } from '../../auth/AuthContext'
@@ -11,20 +11,28 @@ import {
   getCommentLikers,
   likeComment,
   listComments,
+  MAX_COMMENT_ATTACHMENTS,
   MAX_COMMENT_LENGTH,
   timeAgo,
   type Comment,
+  type Visibility,
 } from '../../lib/feed'
+import AttachmentChips from './AttachmentChips'
+import Attachments from './Attachments'
 import LikeButton from './LikeButton'
-import { BUTTON_PRIMARY, ERROR_TEXT, INPUT } from './styles'
+import { ACTION, BUTTON_PRIMARY, ERROR_TEXT, INPUT } from './styles'
+import { useAttachments } from './useAttachments'
 
 const LINK = 'text-xs font-medium text-white/50 cursor-pointer hover:text-white disabled:opacity-50'
 
-function CommentForm({ placeholder, autoFocus = false, onSubmit }: {
+function CommentForm({ placeholder, token, autoFocus = false, onSubmit }: {
   placeholder: string
+  token: string
   autoFocus?: boolean
-  onSubmit: (body: string) => Promise<void>
+  onSubmit: (body: string, attachmentIds: string[]) => Promise<void>
 }) {
+  const pictureInput = useRef<HTMLInputElement>(null)
+  const pictures = useAttachments(token, MAX_COMMENT_ATTACHMENTS)
   const [body, setBody] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -34,8 +42,9 @@ function CommentForm({ placeholder, autoFocus = false, onSubmit }: {
     setBusy(true)
     setError(null)
     try {
-      await onSubmit(body)
+      await onSubmit(body, pictures.attachments.map(a => a.id))
       setBody('')
+      pictures.clear()
     } catch (err) {
       setError(errorMessage(err))
     } finally {
@@ -44,8 +53,24 @@ function CommentForm({ placeholder, autoFocus = false, onSubmit }: {
   }
 
   return (
-    <form onSubmit={submit} className="space-y-1">
+    <form onSubmit={submit} className="space-y-1.5">
+      <AttachmentChips attachments={pictures.attachments} uploading={pictures.uploading} token={token} onRemove={pictures.remove} />
       <div className="flex items-end gap-2">
+        <button type="button" className={cn(ACTION, 'h-10 px-2')} aria-label="Legg ved bilde" onClick={() => pictureInput.current?.click()}>
+          <ImagePlus size={18} aria-hidden="true" />
+        </button>
+        <input
+          ref={pictureInput}
+          type="file"
+          multiple
+          accept="image/*"
+          className="hidden"
+          onChange={e => {
+            pictures.upload(e.target.files)
+            // So choosing the same picture again counts as a new choice
+            e.target.value = ''
+          }}
+        />
         <textarea
           className={`${INPUT} min-h-10 resize-y`}
           rows={1}
@@ -63,17 +88,23 @@ function CommentForm({ placeholder, autoFocus = false, onSubmit }: {
           aria-label={placeholder}
           autoFocus={autoFocus}
         />
-        <button type="submit" className={cn(BUTTON_PRIMARY, 'px-3')} disabled={busy || !body.trim()} aria-label="Send">
+        <button
+          type="submit"
+          className={cn(BUTTON_PRIMARY, 'px-3')}
+          disabled={busy || pictures.uploading > 0 || (!body.trim() && pictures.attachments.length === 0)}
+          aria-label="Send"
+        >
           <Send size={16} aria-hidden="true" />
         </button>
       </div>
-      {error && <p className={ERROR_TEXT}>{error}</p>}
+      {(error ?? pictures.error) && <p className={ERROR_TEXT}>{error ?? pictures.error}</p>}
     </form>
   )
 }
 
 interface CommentItemProps {
   comment: Comment
+  visibility: Visibility
   token: string | null
   isAdmin: boolean
   onReply: () => void
@@ -81,7 +112,7 @@ interface CommentItemProps {
   onDelete: () => Promise<void>
 }
 
-function CommentItem({ comment, token, isAdmin, onReply, onChange, onDelete }: CommentItemProps) {
+function CommentItem({ comment, visibility, token, isAdmin, onReply, onChange, onDelete }: CommentItemProps) {
   const [confirming, setConfirming] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -107,8 +138,13 @@ function CommentItem({ comment, token, isAdmin, onReply, onChange, onDelete }: C
       <div className="min-w-0 flex-1">
         <div className="inline-block max-w-full rounded-lg bg-white/5 px-3 py-2">
           <p className="text-sm font-semibold text-white">{comment.author.name}</p>
-          <p className="whitespace-pre-wrap break-words text-sm text-white/85">{comment.body}</p>
+          {comment.body && <p className="whitespace-pre-wrap break-words text-sm text-white/85">{comment.body}</p>}
         </div>
+        {comment.attachments.length > 0 && (
+          <div className="mt-1.5 max-w-sm">
+            <Attachments attachments={comment.attachments} visibility={visibility} token={token} />
+          </div>
+        )}
         <div className="flex flex-wrap items-center gap-x-3 pl-1">
           <LikeButton
             small
@@ -151,13 +187,15 @@ function CommentItem({ comment, token, isAdmin, onReply, onChange, onDelete }: C
 
 interface CommentsProps {
   postId: string
+  // Of the post, which the pictures on its comments follow
+  visibility: Visibility
   token: string | null
   isAdmin: boolean
   // Told how many comments there are after one is added or deleted
   onCount: (count: number) => void
 }
 
-const Comments = ({ postId, token, isAdmin, onCount }: CommentsProps) => {
+const Comments = ({ postId, visibility, token, isAdmin, onCount }: CommentsProps) => {
   const { login } = useAuth()
   const [comments, setComments] = useState<Comment[] | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -185,9 +223,9 @@ const Comments = ({ postId, token, isAdmin, onCount }: CommentsProps) => {
     onCount(next.filter(comment => !comment.deleted).length)
   }
 
-  const add = async (body: string, parentId: string | null) => {
+  const add = async (body: string, attachmentIds: string[], parentId: string | null) => {
     if (!token) return
-    const added = await addComment(token, postId, body, parentId)
+    const added = await addComment(token, postId, body, parentId, attachmentIds)
     show([...comments, added])
     setReplyingTo(null)
   }
@@ -206,6 +244,7 @@ const Comments = ({ postId, token, isAdmin, onCount }: CommentsProps) => {
     <CommentItem
       key={comment.id}
       comment={comment}
+      visibility={visibility}
       token={token}
       isAdmin={isAdmin}
       onReply={() => setReplyingTo(replyingTo === threadId ? null : threadId)}
@@ -227,8 +266,13 @@ const Comments = ({ postId, token, isAdmin, onCount }: CommentsProps) => {
               {item(thread, thread.id)}
               <div className="ml-9 space-y-3 empty:hidden">
                 {replies.map(reply => item(reply, thread.id))}
-                {replyingTo === thread.id && answerTo && (
-                  <CommentForm autoFocus placeholder="Skriv et svar…" onSubmit={body => add(body, answerTo)} />
+                {replyingTo === thread.id && answerTo && token && (
+                  <CommentForm
+                    autoFocus
+                    token={token}
+                    placeholder="Skriv et svar…"
+                    onSubmit={(body, attachmentIds) => add(body, attachmentIds, answerTo)}
+                  />
                 )}
               </div>
             </div>
@@ -236,7 +280,7 @@ const Comments = ({ postId, token, isAdmin, onCount }: CommentsProps) => {
         })}
 
       {token ? (
-        <CommentForm placeholder="Skriv en kommentar…" onSubmit={body => add(body, null)} />
+        <CommentForm token={token} placeholder="Skriv en kommentar…" onSubmit={(body, attachmentIds) => add(body, attachmentIds, null)} />
       ) : (
         <p className="text-sm text-white/50">
           <button type="button" className="font-medium text-teb-orange cursor-pointer hover:underline" onClick={() => login()}>

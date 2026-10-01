@@ -1,41 +1,35 @@
-export interface EventItem {
-  id: number
-  title: string
-  startDateTime?: string // ISO 8601 format: 'YYYY-MM-DDTHH:mm:ss' - optional for TBA events
-  endDateTime?: string   // ISO 8601 format: 'YYYY-MM-DDTHH:mm:ss' - optional for TBA events
-  description: string
-  image?: string
-}
+import { apiFetch } from './api'
+import { asVisitorIfExpired, json, type Answer, type EventDetails, type FeedMember, type Post, type Rsvp } from './feed'
+
+// An event is a feed post with a title, a place and a time
+export type EventPost = Post & { event: EventDetails }
 
 export type EventStatus = 'upcoming' | 'current' | 'past'
 
-// Add new events here — each one renders as its own card, no other wiring needed.
-export const events: EventItem[] = [
-  {
-    id: 1,
-    title: 'Pulebord 2025',
-    startDateTime: '2025-12-20T12:30:00',
-    endDateTime: '2025-12-21T03:00:00',
-    description: 'Årets Pulebord er det 4de av sitt slag, og vi gleder oss til en kveld fylt med god mat, drikke og sosialt samvær. Dette blir en forglemmelig aften.',
-    image: 'images/events/Pulebord.JPG',
-  },
-  {
-    id: 2,
-    title: 'Guttas Nyttårsaften',
-    startDateTime: '2025-12-31T18:00:00',
-    endDateTime: '2026-01-01T03:00:00',
-    description: 'Vi feirer så klart nyttårsaften sammen og ser fram til en kveld fylt med moro, latter og gode minner. Det blir god mat, drikke og selvfølgelig fyrverkeri ved midnatt.',
-    image: 'images/events/Nyttaar.jpg',
-  },
-  {
-    id: 3,
-    title: 'Sommerfest',
-    description: 'Årets sommerfest er jo såklart høydepunktet på året vårt. Vi samles for en dag fylt med sol, moro og gode vibber. Det blir grilling, musikk og masse aktiviteter.',
-    image: 'images/events/Sommerfest.png',
-  },
-]
+export const MAX_EVENT_TITLE_LENGTH = 120
+export const MAX_EVENT_LOCATION_LENGTH = 200
+export const MAX_ANNOUNCEMENT_LENGTH = 500
 
-export const getEventStatus = (startDateTime?: string, endDateTime?: string): EventStatus => {
+type Token = string | null | undefined
+
+// In the order they take place, the ones without a date last. Visitors get the public ones.
+export const listEvents = (token: Token) =>
+  asVisitorIfExpired(token, t => apiFetch<Post[]>('/events', t)) as Promise<EventPost[]>
+
+// Without an answer, the one given before is taken back
+export const setRsvp = (token: string, id: string, answer: Answer | null) =>
+  apiFetch<Rsvp>(`/events/${id}/rsvp`, token, json('PUT', { answer }))
+
+export const getRsvps = (token: string, id: string) => apiFetch<Record<Answer, FeedMember[]>>(`/events/${id}/rsvps`, token)
+
+export const sendAnnouncement = (token: string, id: string, body: string) =>
+  apiFetch<unknown>(`/events/${id}/announcements`, token, json('POST', { body }))
+
+export const eventLink = (id: string) => `/feed/${id}`
+
+type Time = string | null | undefined
+
+export const getEventStatus = (startDateTime: Time, endDateTime: Time): EventStatus => {
   if (!startDateTime || !endDateTime) return 'upcoming'
 
   const now = new Date()
@@ -47,7 +41,7 @@ export const getEventStatus = (startDateTime?: string, endDateTime?: string): Ev
   return 'past'
 }
 
-export const formatEventDate = (startDateTime?: string, endDateTime?: string): string => {
+export const formatEventDate = (startDateTime: Time, endDateTime: Time): string => {
   if (!startDateTime || !endDateTime) return 'Dato kommer snart'
 
   const start = new Date(startDateTime)
@@ -72,7 +66,7 @@ export interface Countdown {
   seconds: number
 }
 
-export const getCountdown = (startDateTime?: string): Countdown | null => {
+export const getCountdown = (startDateTime: Time): Countdown | null => {
   if (!startDateTime) return null
 
   const now = new Date()
@@ -104,10 +98,34 @@ export const formatCountdown = (countdown: Countdown): string => {
 export const getStatusText = (status: EventStatus): string => {
   switch (status) {
     case 'current':
-      return 'Pågående'
+      return 'Pågår'
     case 'upcoming':
-      return 'Kommende'
+      return 'Planlagt'
     case 'past':
-      return 'Avsluttet'
+      return 'Gjennomført'
   }
+}
+
+export const statusDotClass: Record<EventStatus, string> = {
+  current: 'bg-teb-green',
+  upcoming: 'bg-teb-orange',
+  past: 'bg-white/30',
+}
+
+// Between the API's times and what a <input type="datetime-local"> holds, which is the
+// time on the member's own clock without a time zone
+export function toLocalInput(iso: string | null) {
+  if (!iso) return ''
+  const time = new Date(iso)
+  return new Date(time.getTime() - time.getTimezoneOffset() * 60_000).toISOString().slice(0, 16)
+}
+
+export const fromLocalInput = (value: string) => (value ? new Date(value).toISOString() : null)
+
+// Whether the event takes place on the given day, wholly or partly
+export function isOnDay(event: EventDetails, day: Date) {
+  if (!event.startsAt || !event.endsAt) return false
+  const dayStart = new Date(day.getFullYear(), day.getMonth(), day.getDate())
+  const dayEnd = new Date(day.getFullYear(), day.getMonth(), day.getDate() + 1)
+  return new Date(event.startsAt) < dayEnd && new Date(event.endsAt) >= dayStart
 }

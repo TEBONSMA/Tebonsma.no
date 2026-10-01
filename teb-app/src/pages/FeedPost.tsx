@@ -38,12 +38,17 @@ export default function FeedPost() {
   }, [id, token, isLoading])
 
   const current = loaded?.id === id ? loaded : null
+  // An event is reached from the calendar, and goes back there
+  const isEvent = !!current && 'post' in current && !!current.post.event
 
   return (
     <Layout mainClassName="w-full max-w-2xl mx-auto px-4 pt-24 pb-16 space-y-6">
-      <Link to="/feed" className="inline-flex items-center gap-2 text-sm text-white/60 hover:text-white transition-colors">
+      <Link
+        to={isEvent ? '/kalender' : '/feed'}
+        className="inline-flex items-center gap-2 text-sm text-white/60 hover:text-white transition-colors"
+      >
         <ArrowLeft size={16} aria-hidden="true" />
-        Til feeden
+        {isEvent ? 'Til kalenderen' : 'Til feeden'}
       </Link>
 
       {!current && <p className="py-8 text-center text-white/60">Laster innlegg…</p>}
@@ -53,7 +58,7 @@ export default function FeedPost() {
           post={current.post}
           commentsOpen
           onChange={post => setLoaded({ id, post })}
-          onDelete={() => navigate('/feed', { replace: true })}
+          onDelete={() => navigate(isEvent ? '/kalender' : '/feed', { replace: true })}
         />
       )}
 

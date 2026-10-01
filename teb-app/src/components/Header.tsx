@@ -8,6 +8,7 @@ import NotificationBell from './feed/NotificationBell'
 const navItems = [
   { label: 'Hjem', href: '/' },
   { label: 'Feed', href: '/feed' },
+  { label: 'Kalender', href: '/kalender' },
   { label: 'Spill', href: '/games' },
   { label: 'Om oss', href: '/about' },
 ]

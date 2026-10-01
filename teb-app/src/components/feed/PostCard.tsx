@@ -1,11 +1,12 @@
 import { useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
-import { Check, Ellipsis, Flag, Globe, Lock, MessageCircle, Pencil, Pin, PinOff, Share2, Trash2 } from 'lucide-react'
+import { Check, Ellipsis, Flag, Globe, Lock, Megaphone, MessageCircle, Pencil, Pin, PinOff, Share2, Trash2 } from 'lucide-react'
 import Avatar from '../Avatar'
 import { cn } from '../../lib/utils'
 import { useProfile } from '../../account/ProfileContext'
 import { useAuth } from '../../auth/AuthContext'
 import { ADMIN_GROUP } from '../../auth/userManager'
+import { MAX_ANNOUNCEMENT_LENGTH, sendAnnouncement } from '../../lib/events'
 import {
   deletePost,
   errorMessage,
@@ -18,6 +19,7 @@ import {
   timeAgo,
   type Post,
 } from '../../lib/feed'
+import EventHeader from '../events/EventHeader'
 import Attachments from './Attachments'
 import Comments from './Comments'
 import LikeButton from './LikeButton'
@@ -40,7 +42,7 @@ const withLinks = (text: string): ReactNode[] =>
     ),
   )
 
-type Panel = 'edit' | 'delete' | 'report' | null
+type Panel = 'edit' | 'delete' | 'report' | 'announce' | null
 
 interface PostCardProps {
   post: Post
@@ -61,6 +63,8 @@ const PostCard = ({ post, commentsOpen = false, onChange, onDelete }: PostCardPr
   const [panel, setPanel] = useState<Panel>(null)
   const [showComments, setShowComments] = useState(commentsOpen)
   const [reason, setReason] = useState('')
+  const [announcement, setAnnouncement] = useState('')
+  const [announced, setAnnounced] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [shared, setShared] = useState(false)
@@ -70,6 +74,7 @@ const PostCard = ({ post, commentsOpen = false, onChange, onDelete }: PostCardPr
   const openPanel = (next: Panel) => {
     setMenuOpen(false)
     setError(null)
+    setAnnounced(false)
     setPanel(next)
   }
 
@@ -109,11 +114,22 @@ const PostCard = ({ post, commentsOpen = false, onChange, onDelete }: PostCardPr
       })
   }
 
+  const announce = (e: FormEvent) => {
+    e.preventDefault()
+    if (token)
+      run(async () => {
+        await sendAnnouncement(token, post.id, announcement)
+        setPanel(null)
+        setAnnouncement('')
+        setAnnounced(true)
+      })
+  }
+
   const share = async () => {
     const url = postLink(post.id)
     try {
       // The phone's own share sheet where there is one, otherwise the link is copied
-      if (navigator.share) await navigator.share({ title: `Innlegg fra ${post.author.name}`, url })
+      if (navigator.share) await navigator.share({ title: post.event?.title ?? `Innlegg fra ${post.author.name}`, url })
       else {
         await navigator.clipboard.writeText(url)
         setShared(true)
@@ -177,6 +193,12 @@ const PostCard = ({ post, commentsOpen = false, onChange, onDelete }: PostCardPr
                       Rediger
                     </button>
                   )}
+                  {post.mine && post.event && (
+                    <button type="button" role="menuitem" className={MENU_ITEM} onClick={() => openPanel('announce')}>
+                      <Megaphone size={16} aria-hidden="true" />
+                      Send kunngjøring
+                    </button>
+                  )}
                   {isAdmin && (
                     <button type="button" role="menuitem" className={MENU_ITEM} onClick={togglePin}>
                       {post.pinned ? <PinOff size={16} aria-hidden="true" /> : <Pin size={16} aria-hidden="true" />}
@@ -224,6 +246,9 @@ const PostCard = ({ post, commentsOpen = false, onChange, onDelete }: PostCardPr
           />
         ) : (
           <>
+            {post.event && (
+              <EventHeader postId={post.id} event={post.event} token={token} onChange={event => onChange({ ...post, event })} />
+            )}
             {post.body && (
               <p className="whitespace-pre-wrap break-words text-[15px] leading-relaxed text-white/90">{withLinks(post.body)}</p>
             )}
@@ -238,7 +263,9 @@ const PostCard = ({ post, commentsOpen = false, onChange, onDelete }: PostCardPr
 
         {panel === 'delete' && (
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-red-400/20 bg-red-400/5 p-3">
-            <p className="text-sm text-white/80">Slette innlegget? Kommentarer og vedlegg forsvinner også.</p>
+            <p className="text-sm text-white/80">
+              {post.event ? 'Slette arrangementet? Påmeldinger, kommentarer og bilder forsvinner også.' : 'Slette innlegget? Kommentarer og vedlegg forsvinner også.'}
+            </p>
             <div className="flex gap-2">
               <button type="button" className={BUTTON_GHOST} disabled={busy} onClick={() => setPanel(null)}>
                 Avbryt
@@ -273,6 +300,31 @@ const PostCard = ({ post, commentsOpen = false, onChange, onDelete }: PostCardPr
           </form>
         )}
 
+        {panel === 'announce' && (
+          <form onSubmit={announce} className="space-y-2 rounded-md border border-white/10 p-3">
+            <label className="block space-y-1.5">
+              <span className="text-sm font-medium text-white/80">Kunngjøring til alle medlemmer</span>
+              <textarea
+                className={`${INPUT} min-h-16 resize-y`}
+                value={announcement}
+                onChange={e => setAnnouncement(e.target.value)}
+                maxLength={MAX_ANNOUNCEMENT_LENGTH}
+                placeholder="Alle medlemmer får et varsel med denne teksten."
+                autoFocus
+              />
+            </label>
+            <div className="flex justify-end gap-2">
+              <button type="button" className={BUTTON_GHOST} disabled={busy} onClick={() => setPanel(null)}>
+                Avbryt
+              </button>
+              <button type="submit" className={BUTTON_PRIMARY} disabled={busy || !announcement.trim()}>
+                Send til alle
+              </button>
+            </div>
+          </form>
+        )}
+
+        {announced && <p className="text-sm text-white/60">Kunngjøringen er sendt til alle medlemmer.</p>}
         {error && <p className={ERROR_TEXT}>{error}</p>}
       </div>
 
@@ -299,6 +351,7 @@ const PostCard = ({ post, commentsOpen = false, onChange, onDelete }: PostCardPr
         <div className="border-t border-white/10 p-4 md:p-5">
           <Comments
             postId={post.id}
+            visibility={post.visibility}
             token={token}
             isAdmin={isAdmin}
             onCount={commentCount => onChange({ ...post, commentCount })}

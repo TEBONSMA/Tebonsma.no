@@ -12,9 +12,12 @@ const POLL_MS = 60_000
 const TEXT: Record<Notification['kind'], string> = {
   comment: 'kommenterte innlegget ditt',
   reply: 'svarte på kommentaren din',
+  event: 'publiserte et arrangement',
+  announcement: 'sendte en kunngjøring',
 }
 
-// Tells members when someone comments on their post or answers their comment
+// Tells members when someone comments on their post or answers their comment, and about
+// new events and what their organizers announce
 const NotificationBell = () => {
   const { user } = useAuth()
   const token = user?.access_token

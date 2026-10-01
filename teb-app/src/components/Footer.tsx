@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 const navLinks = [
   { label: 'Hjem', href: '/' },
   { label: 'Feed', href: '/feed' },
+  { label: 'Kalender', href: '/kalender' },
   { label: 'Spill', href: '/games' },
   { label: 'Om oss', href: '/about' },
   { label: 'Kontakt', href: '/contact' },
