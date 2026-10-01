@@ -8,6 +8,8 @@ import Games from './pages/Games'
 import GamePlayer from './pages/GamePlayer'
 import AuthCallback from './pages/AuthCallback'
 import Konto from './pages/Konto'
+import Feed from './pages/Feed'
+import FeedPost from './pages/FeedPost'
 import './App.css'
 
 function App() {
@@ -25,6 +27,8 @@ function App() {
             <Route path="/flappy" element={<Navigate to="/games/flappy-teb" replace />} />
             <Route path="/auth/callback" element={<AuthCallback />} />
             <Route path="/konto" element={<Konto />} />
+            <Route path="/feed" element={<Feed />} />
+            <Route path="/feed/:id" element={<FeedPost />} />
           </Routes>
         </ProfileProvider>
       </AuthProvider>
