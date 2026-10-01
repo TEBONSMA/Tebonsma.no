@@ -238,6 +238,22 @@ npm run preview
 npm run lint
 ```
 
+### Logging in locally
+
+`npm run dev` logs in against the real `auth.tebonsma.no` and talks to the real API. To
+work on anything behind login without a real account, use the mock login instead:
+
+```bash
+# In the tebonsma-api repo: starts the API and a mock login server
+npm run dev:mock
+
+# In teb-app: starts the site pointed at them (settings in .env.mock)
+npm run dev:mock
+```
+
+"Logg inn" then opens a page where you pick a test user, `dev` (ordinary member) or
+`admin` (in `lldap_admin`). No passwords, and nothing touches the real accounts.
+
 ---
 
 ## 📦 Dependencies
