@@ -1,381 +1,250 @@
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://capsule-render.vercel.app/api?type=waving&color=0:FF8C42,10:FFA500,20:FFD700,30:FF8C42,40:8B4513,50:FFD700,60:FFA500,70:FF8C42,80:FFD700,90:FFA500,100:8B4513&height=200&section=header&text=🍊%20TEBONSMA%20🍊&fontSize=60&fontColor=ffffff&animation=twinkling&fontAlignY=50&rotate=0" />
-  <source media="(prefers-color-scheme: light)" srcset="https://capsule-render.vercel.app/api?type=waving&color=0:FF8C42,10:FFA500,20:FFD700,30:FF8C42,40:8B4513,50:FFD700,60:FFA500,70:FF8C42,80:FFD700,90:FFA500,100:8B4513&height=200&section=header&text=🍊%20TEBONSMA%20🍊&fontSize=60&fontColor=ffffff&animation=twinkling&fontAlignY=50&rotate=0" />
-  <img alt="Header" src="https://capsule-render.vercel.app/api?type=waving&color=0:FF8C42,10:FFA500,20:FFD700,30:FF8C42,40:8B4513,50:FFD700,60:FFA500,70:FF8C42,80:FFD700,90:FFA500,100:8B4513&height=200&section=header&text=🍊%20TEBONSMA%20🍊&fontSize=60&fontColor=ffffff&animation=twinkling&fontAlignY=50&rotate=0" width="100%" />
-</picture>
+# Tebonsma.no
 
-<div align="center">
+[![CI](https://github.com/TEBONSMA/Tebonsma.no/actions/workflows/ci.yml/badge.svg)](https://github.com/TEBONSMA/Tebonsma.no/actions/workflows/ci.yml)
+[![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white)](https://react.dev)
+[![TypeScript](https://img.shields.io/badge/TypeScript-6-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
+[![Vite](https://img.shields.io/badge/Vite-8-646CFF?logo=vite&logoColor=white)](https://vite.dev)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-38B2AC?logo=tailwindcss&logoColor=white)](https://tailwindcss.com)
 
-[![Live Site](https://img.shields.io/badge/🌐_Live-tebonsma.no-FF8C42?style=for-the-badge)](https://tebonsma.no)
-[![React](https://img.shields.io/badge/React-19.2-61DAFB?style=for-the-badge&logo=react&logoColor=white)](https://react.dev)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://typescriptlang.org)
-[![Vite](https://img.shields.io/badge/Vite-7.2-646CFF?style=for-the-badge&logo=vite&logoColor=white)](https://vitejs.dev)
-[![Tailwind CSS](https://img.shields.io/badge/Tailwind-4.1-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com)
+Source code for the website of TEBONSMA, live at [tebonsma.no](https://tebonsma.no).
 
-</div>
+The site is a single-page application built with React and TypeScript. It presents the
+organisation, its members and events, offers member sign-in with a self-service account
+page, and hosts a small collection of browser games with a shared leaderboard.
 
----
+## Contents
 
-## 📋 Overview
+- [Features](#features)
+- [Tech stack](#tech-stack)
+- [Architecture](#architecture)
+- [Getting started](#getting-started)
+- [Scripts](#scripts)
+- [Local sign-in with mock auth](#local-sign-in-with-mock-auth)
+- [Project structure](#project-structure)
+- [Continuous integration](#continuous-integration)
+- [Deployment](#deployment)
+- [License](#license)
 
-TEBONSMA's official website - a modern, interactive web experience featuring a custom Flappy Bird game, animated UI components, and a dynamic member showcase. Built with React, TypeScript, and cutting-edge web technologies for maximum performance and visual appeal.
+## Features
 
-<div align="center">
+| Area | Description |
+| --- | --- |
+| Public pages | Home, About, Contact, and an events calendar |
+| Member accounts | OpenID Connect sign-in and a `/konto` page for editing profile details and avatar |
+| Games | Flappy Teb, Snake Teb and 2048 Teb, served as standalone canvas games |
+| Leaderboard | Flappy Teb scores are submitted to and ranked by the API |
+| Motion and UI | Animated components built on Motion and Tailwind CSS, responsive from mobile up |
 
-| Feature                        | Description                                      |
-| ------------------------------ | ------------------------------------------------ |
-| 🎮 **Flappy-Teb Game**         | Custom Flappy Bird with Jarritos bottles        |
-| ✨ **ChromaGrid Showcase**     | Interactive member cards with spotlight effects |
-| 🌊 **WebGL Backgrounds**       | DarkVeil & Aurora shader effects                 |
-| 🎨 **GSAP Animations**         | Smooth, performance-optimized transitions        |
-| 🎯 **PillNav Navigation**      | Animated pill-style navigation bar               |
-| 📱 **Fully Responsive**        | Mobile-first design with adaptive layouts        |
-| 🎭 **Framer Motion**           | Spring-based modal animations                    |
-| 🎵 **Audio Integration**       | Background music & sound effects in game         |
+### Routes
 
-</div>
+| Path | Page |
+| --- | --- |
+| `/` | Home |
+| `/about` | About |
+| `/contact` | Contact |
+| `/games` | Game overview |
+| `/games/flappy-teb` | Flappy Teb (with leaderboard) |
+| `/games/:slug` | Other games, such as `snake-teb` and `2048-teb` |
+| `/konto` | Member account page (requires sign-in) |
+| `/auth/callback` | OIDC redirect target |
 
----
+## Tech stack
 
-## 🏗️ Tech Stack
+| Concern | Technology |
+| --- | --- |
+| UI | React 19 with the React Compiler |
+| Language | TypeScript |
+| Build and dev server | Vite |
+| Styling | Tailwind CSS 4, `tw-animate-css`, Geist fonts via Fontsource |
+| Routing | React Router |
+| Animation | Motion |
+| Authentication | `oidc-client-ts` (OpenID Connect, authorization code flow) |
+| Quality | ESLint, `tsc` type checking, GitHub Actions |
+| Hosting | Apache on Debian |
 
-### Frontend
-
-| Technology                                                                                                                 | Purpose                  |
-| -------------------------------------------------------------------------------------------------------------------------- | ------------------------ |
-| ![React](https://img.shields.io/badge/React-61DAFB?style=flat-square&logo=react&logoColor=black)                           | UI Framework             |
-| ![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white)            | Type Safety              |
-| ![Vite](https://img.shields.io/badge/Vite-646CFF?style=flat-square&logo=vite&logoColor=white)                              | Build Tool & Dev Server  |
-| ![Tailwind CSS](https://img.shields.io/badge/Tailwind-38B2AC?style=flat-square&logo=tailwind-css&logoColor=white)          | Utility-first CSS        |
-| ![React Router](https://img.shields.io/badge/React_Router-CA4245?style=flat-square&logo=reactrouter&logoColor=white)       | Client-side Routing      |
-| ![GSAP](https://img.shields.io/badge/GSAP-88CE02?style=flat-square&logo=greensock&logoColor=white)                         | Advanced Animations      |
-| ![Framer Motion](https://img.shields.io/badge/Framer_Motion-0055FF?style=flat-square&logo=framer&logoColor=white)          | React Animation Library  |
-
-### Hosting & Deployment
-
-| Technology                                                                                          | Purpose       |
-| --------------------------------------------------------------------------------------------------- | ------------- |
-| ![Apache](https://img.shields.io/badge/Apache-D22128?style=flat-square&logo=apache&logoColor=white) | Web Server    |
-| ![Debian](https://img.shields.io/badge/Debian-A81D33?style=flat-square&logo=debian&logoColor=white) | Server OS     |
-
----
-
-## 📁 Project Structure
+## Architecture
 
 ```
-teb-app/
-├── public/                      # Static assets
-│   ├── audio/
-│   │   ├── bgmusic/            # Background music tracks (6 songs)
-│   │   └── gamesounds/         # Game sound effects
-│   ├── games/
-│   │   └── flappy-teb/         # Standalone Flappy Bird game
-│   │       ├── game.js         # Canvas-based game logic
-│   │       ├── index.html      # Game HTML
-│   │       └── style.css       # Game styling
-│   ├── gifs/
-│   └── images/
-│       ├── background/         # Game backgrounds (30+)
-│       └── flappy/             # Bird sprites & assets
-│
-├── src/
-│   ├── components/
-│   │   ├── Header.tsx          # Site navigation
-│   │   ├── Footer.tsx          # Site footer
-│   │   ├── fancy/
-│   │   │   ├── blocks/
-│   │   │   │   └── media-between-text.tsx
-│   │   │   └── text/
-│   │   │       ├── letter-3d-swap.tsx
-│   │   │       ├── text-rotate.tsx
-│   │   │       └── variable-font-hover-by-random-letter.tsx
-│   │   └── reactbits/
-│   │       ├── Aurora.tsx      # WebGL aurora background
-│   │       ├── ChromaGrid.tsx  # Animated member showcase
-│   │       ├── DarkVeil.tsx    # WebGL dark shader background
-│   │       └── PillNav.tsx     # Animated navigation pills
-│   │
-│   ├── pages/
-│   │   ├── Home.tsx            # Landing page
-│   │   ├── FlappyGame.tsx      # Game page
-│   │   ├── Contact.tsx         # Contact information
-│   │   └── Persons.tsx         # Team members showcase
-│   │
-│   ├── lib/
-│   │   └── utils.ts            # Utility functions
-│   │
-│   ├── styles/
-│   │   └── fancy.css           # Custom CSS with Tailwind theme
-│   │
-│   ├── App.tsx                 # Main app component
-│   ├── App.css                 # App-level styles
-│   ├── globals.css             # Global styles & overrides
-│   └── main.tsx                # React entry point
-│
-├── components.json             # shadcn/ui configuration
-├── tailwind.config.js          # Tailwind CSS configuration
-├── tsconfig.json               # TypeScript configuration
-└── vite.config.ts              # Vite build configuration
+Browser (teb-app)
+  ├── auth.tebonsma.no   OIDC login (Authelia)
+  └── api.tebonsma.no    Profile and leaderboard API (tebonsma-api)
+                           └── LLDAP   member directory
 ```
 
----
+- **Frontend:** this repository. The app lives in [`teb-app/`](teb-app).
+- **Backend:** `tebonsma-api`, a small Node.js API that edits
+  the signed-in member's own LLDAP entry and stores the Flappy Teb scoreboard. It is
+  developed in a separate repository.
+- **Sign-in:** the site is an OIDC public client (`tebonsma-web`) using the authorization
+  code flow. Tokens are sent to the API as `Authorization: Bearer <token>`.
 
-## 🎮 Flappy-Teb Game
-
-A fully-featured Flappy Bird clone with TEBONSMA branding:
-
-### Game Features
-
-| Feature                  | Description                                         |
-| ------------------------ | --------------------------------------------------- |
-| 🎲 **Random Assets**     | 3 bird sprites, 30+ backgrounds loaded randomly    |
-| 🍾 **Jarritos Pipes**    | Stretched bottle images as obstacles               |
-| 💥 **Collision Physics** | Bottle-shaped hitboxes (neck/body detection)       |
-| 🎉 **Celebrations**      | Random GIFs at milestone scores (7, 21)            |
-| 🎵 **Audio System**      | Looping background music + crash/milestone sounds  |
-| 🏆 **Score Tracking**    | Real-time scoring with milestone events            |
-| 🎨 **Grayscale Effects** | Canvas backdrop filters for visual polish          |
-
-### Game Architecture
-
-- **Canvas API** - Pure JavaScript rendering (534 lines)
-- **Fixed Dimensions** - 400×600px game canvas
-- **GSAP Integration** - quickSetter for performance
-- **Asset Randomization** - Fresh experience every game
-- **Audio Management** - Continuous music across sessions
-
----
-
-## ✨ UI Components
-
-### ChromaGrid
-
-Interactive grid showcasing team members with:
-
-- **Spotlight Effect** - GSAP-powered mouse-following spotlight
-- **Grayscale Masks** - Radial gradients reveal color on hover
-- **Modal System** - Framer Motion spring animations
-- **Responsive Layout** - Mobile-centered, desktop side-by-side
-- **Scroll Locking** - Body scroll prevention when modal open
-
-### PillNav
-
-Animated navigation with:
-
-- **Circular Hover** - Pills expand with circular geometry
-- **Label Animations** - Text slides vertically on hover
-- **Logo Rotation** - 360° spin on hover
-- **Mobile Menu** - Hamburger with GSAP transforms
-- **Delayed Hide** - Smart timeout for smooth UX
-
-### DarkVeil & Aurora
-
-WebGL shader backgrounds:
-
-- **Fragment Shaders** - GLSL-based visual effects
-- **Gradient Overlays** - Navy fallback for compatibility
-- **Performance** - GPU-accelerated rendering
-- **Responsive** - Fixed positioning, full viewport coverage
-
----
-
-## 🎨 Design System
-
-### Color Palette
-
-The site uses Jarritos-inspired orange/gold gradients:
-
-- **Primary** - `#FF8C42` (Jarritos Orange)
-- **Secondary** - `#FFA500` (Gold)
-- **Accent** - `#FFD700` (Light Gold)
-- **Dark** - `#8B4513` (Brown)
-
-### Tailwind Configuration
-
-Custom theme extending Tailwind with:
-
-- `teb-green` - Brand color for nav pills
-- CSS variables for dynamic theming
-- Mobile-first breakpoints
-- Custom utility classes in `fancy.css`
-
----
-
-## 🚀 Getting Started
+## Getting started
 
 ### Prerequisites
 
-- Node.js 18+
-- npm or yarn
+- Node.js 22 or newer (the version used in CI)
+- npm
 
 ### Installation
 
 ```bash
-# Clone the repository
-git clone https://github.com/yourusername/teb.git
-cd teb/teb-app
-
-# Install dependencies
+git clone https://github.com/TEBONSMA/Tebonsma.no.git
+cd Tebonsma.no/teb-app
 npm install
-
-# Start development server
 npm run dev
 ```
 
-### Development
+The dev server runs at <http://localhost:5173>.
+
+By default the app uses the production services, `https://auth.tebonsma.no` for sign-in
+and `https://api.tebonsma.no` for the API. To work on anything behind sign-in without a
+real account, use [mock auth](#local-sign-in-with-mock-auth).
+
+### Configuration
+
+Both values are optional and are read at build time by Vite.
+
+| Variable | Default | Description |
+| --- | --- | --- |
+| `VITE_AUTH_AUTHORITY` | `https://auth.tebonsma.no` | OIDC provider the site signs in against |
+| `VITE_API_URL` | `https://api.tebonsma.no` | Base URL of the API |
+
+`npm run dev:mock` loads these from [`teb-app/.env.mock`](teb-app/.env.mock). To use other
+values yourself, put them in `teb-app/.env.local`.
+
+## Scripts
+
+Run all commands from `teb-app/`.
+
+| Command | Description |
+| --- | --- |
+| `npm run dev` | Start the dev server against the real auth and API |
+| `npm run dev:mock` | Start the dev server against the local mock auth and API |
+| `npm run build` | Type-check and create a production build in `dist/` |
+| `npm run preview` | Serve the production build locally |
+| `npm run lint` | Run ESLint |
+
+## Local sign-in with mock auth
+
+`npm run dev` signs in against the real `auth.tebonsma.no` and talks to the real API. To
+work on anything behind sign-in without a real account, use the mock setup instead. It
+starts a local API and a mock login server, and nothing touches real accounts.
+
+1. In the `tebonsma-api` repository, start the API and the mock login server:
+
+   ```bash
+   npm run dev:mock
+   ```
+
+2. In `Tebonsma.no/teb-app`, start the site pointed at them (settings in `.env.mock`):
+
+   ```bash
+   npm run dev:mock
+   ```
+
+Clicking "Logg inn" opens a page where you pick a test user. There are no passwords.
+
+| User | Groups | Use for |
+| --- | --- | --- |
+| `dev` | `tebonsma` | An ordinary member |
+| `admin` | `tebonsma`, `lldap_admin` | What administrators see |
+
+The mock login server listens on `http://localhost:9091` and the API on
+`http://localhost:8080`. See the `tebonsma-api` README for details.
+
+## Project structure
+
+```
+Tebonsma.no/
+├── .github/
+│   ├── workflows/ci.yml          # Lint and build on pull requests and pushes to main
+│   └── dependabot.yml            # Dependency update configuration
+└── teb-app/
+    ├── public/                   # Static assets, copied as-is into the build
+    │   ├── .htaccess             # SPA routing for Apache
+    │   ├── audio/                # Background music and game sounds
+    │   ├── games/                # Standalone canvas games (index.html, game.js, style.css)
+    │   │   ├── flappy-teb/
+    │   │   ├── snake-teb/
+    │   │   └── 2048-teb/
+    │   ├── gifs/
+    │   └── images/
+    ├── src/
+    │   ├── account/              # Profile context and provider
+    │   ├── auth/                 # OIDC user manager, auth context and provider
+    │   ├── components/           # Shared UI (Header, Footer, Calendar, MembersGrid, ...)
+    │   │   ├── fancy/            # Animated layout blocks
+    │   │   └── reactbits/        # Animated card components
+    │   ├── lib/                  # API client, games, events, members and utilities
+    │   ├── pages/                # Route components
+    │   ├── App.tsx               # Routes
+    │   ├── globals.css           # Tailwind theme (brand colors, fonts) and global styles
+    │   └── main.tsx              # Entry point
+    ├── .env.mock                 # Settings used by `npm run dev:mock`
+    ├── components.json           # shadcn/ui configuration
+    ├── eslint.config.js
+    ├── vite.config.ts
+    └── tsconfig*.json
+```
+
+### Adding a game
+
+Games are self-contained pages under `teb-app/public/games/<slug>/`. To add one, put its
+files there and add an entry to [`src/lib/games.ts`](teb-app/src/lib/games.ts) with its
+slug, title, description, thumbnail, source path and aspect ratio. It then appears on
+`/games` and is served at `/games/<slug>`. The game is embedded in an iframe.
+
+### Design tokens
+
+Brand colors and fonts are defined as Tailwind theme variables in
+[`src/globals.css`](teb-app/src/globals.css), for example `teb-green`, `teb-orange` and
+`navy`, with Geist Sans and Geist Mono as the typefaces.
+
+## Continuous integration
+
+[`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs on every pull request and on
+pushes to `main`. It installs dependencies with `npm ci`, checks that `react` and
+`react-dom` versions match (React fails to start otherwise, and a build alone does not
+catch it), then runs `npm run lint` and `npm run build`. The job is named
+"Lint and build" and is the status check to require in the branch rule for `main`.
+
+Dependabot opens pull requests for dependency updates.
+
+## Deployment
+
+The site is a static build served by Apache.
 
 ```bash
-# Start dev server (http://localhost:5173)
-npm run dev
-
-# Build for production
+cd teb-app
+npm ci
 npm run build
-
-# Preview production build
-npm run preview
-
-# Lint code
-npm run lint
 ```
 
-### Logging in locally
+Upload the contents of `teb-app/dist/` to the web root of the server.
 
-`npm run dev` logs in against the real `auth.tebonsma.no` and talks to the real API. To
-work on anything behind login without a real account, use the mock login instead:
+### SPA routing
 
-```bash
-# In the tebonsma-api repo: starts the API and a mock login server
-npm run dev:mock
-
-# In teb-app: starts the site pointed at them (settings in .env.mock)
-npm run dev:mock
-```
-
-"Logg inn" then opens a page where you pick a test user, `dev` (ordinary member) or
-`admin` (in `lldap_admin`). No passwords, and nothing touches the real accounts.
-
----
-
-## 📦 Dependencies
-
-### Production
-
-| Package              | Version  | Purpose                      |
-| -------------------- | -------- | ---------------------------- |
-| `react`              | ^19.2.1  | UI Framework                 |
-| `react-dom`          | ^19.2.0  | React DOM renderer           |
-| `react-router-dom`   | ^7.9.6   | Routing                      |
-| `gsap`               | ^3.13.0  | Advanced animations          |
-| `motion`             | ^12.23.24| React animation library      |
-| `tailwindcss`        | ^4.1.17  | Utility-first CSS            |
-| `@tailwindcss/vite`  | ^4.1.17  | Tailwind Vite plugin         |
-| `clsx`               | ^2.1.1   | Conditional class joining    |
-| `tailwind-merge`     | ^3.4.0   | Tailwind class merging       |
-| `ogl`                | ^1.0.11  | WebGL library for shaders    |
-| `lucide-react`       | ^0.553.0 | Icon library                 |
-
-### Development
-
-| Package                       | Purpose             |
-| ----------------------------- | ------------------- |
-| `vite`                        | Build tool          |
-| `typescript`                  | Type checking       |
-| `@vitejs/plugin-react`        | React plugin        |
-| `eslint`                      | Linting             |
-| `typescript-eslint`           | TypeScript linting  |
-| `autoprefixer` & `postcss`    | CSS processing      |
-| `babel-plugin-react-compiler` | React optimization  |
-
----
-
-## 🌍 Deployment
-
-### Apache Configuration
-
-The site requires a `.htaccess` file for SPA routing:
+Routes such as `/games` and `/konto` are handled in the browser, so the server has to
+fall back to `index.html` for unknown paths. `teb-app/public/.htaccess` does this and is
+copied into `dist/` by the build. Make sure it ends up next to `index.html` and that
+`mod_rewrite` is enabled and `AllowOverride` permits it.
 
 ```apache
 <IfModule mod_rewrite.c>
   RewriteEngine On
   RewriteBase /
-  
+
   # Don't rewrite files or directories
   RewriteCond %{REQUEST_FILENAME} !-f
   RewriteCond %{REQUEST_FILENAME} !-d
-  
+
   # Rewrite everything else to index.html
   RewriteRule ^ index.html [L]
 </IfModule>
 ```
 
-Place this in `public/.htaccess` - it will be included in the build.
+Static files are served from disk, so no Apache restart is needed after a deploy.
 
-### Build & Deploy
+## License
 
-```bash
-# Build for production
-npm run build
-
-# Upload dist/ contents to server
-# Ensure .htaccess is in the root with index.html
-
-# Restart Apache (on server)
-sudo systemctl restart apache2
-```
-
----
-
-## 🎯 Key Features Explained
-
-### Game Integration
-
-The Flappy-Teb game is served via iframe from `/games/flappy-teb/`:
-
-```tsx
-<iframe 
-  src="/games/flappy-teb/index.html"
-  className="w-full aspect-[2/3] max-w-[400px]"
-/>
-```
-
-Background music persists across game restarts using a `musicStarted` flag.
-
-### Member Cards Animation
-
-ChromaGrid uses GSAP's `quickSetter` for 60fps spotlight tracking:
-
-```typescript
-setX.current = gsap.quickSetter(el, '--x', 'px');
-setY.current = gsap.quickSetter(el, '--y', 'px');
-```
-
-Modal animations use Framer Motion's spring physics:
-
-```typescript
-<motion.div
-  initial={{ scale: 0.8, opacity: 0 }}
-  animate={{ scale: 1, opacity: 1 }}
-  transition={{ type: "spring", damping: 25, stiffness: 300 }}
-/>
-```
-
----
-
-## 📄 License
-
-© 2025 TEBONSMA. All rights reserved.
-
----
-
-<div align="center">
-
-[![Visit TEBONSMA](https://img.shields.io/badge/Visit_Site-tebonsma.no-FF8C42?style=flat-square)](https://tebonsma.no)
-[![Play Flappy-Teb](https://img.shields.io/badge/🎮_Play-Flappy_Teb-FFA500?style=flat-square)](https://tebonsma.no/flappy)
-
-</div>
-
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://capsule-render.vercel.app/api?type=waving&color=0:8B4513,5:FFD700,10:FFA500,15:FF8C42,20:FFD700,25:8B4513,30:FFA500,35:FF8C42,40:FFD700,45:FFA500,50:8B4513,55:FFD700,60:FF8C42,65:FFA500,70:FFD700,75:8B4513,80:FF8C42,85:FFA500,90:FFD700,95:FF8C42,100:8B4513&height=120&section=footer&animation=blinking" />
-  <source media="(prefers-color-scheme: light)" srcset="https://capsule-render.vercel.app/api?type=waving&color=0:8B4513,5:FFD700,10:FFA500,15:FF8C42,20:FFD700,25:8B4513,30:FFA500,35:FF8C42,40:FFD700,45:FFA500,50:8B4513,55:FFD700,60:FF8C42,65:FFA500,70:FFD700,75:8B4513,80:FF8C42,85:FFA500,90:FFD700,95:FF8C42,100:8B4513&height=120&section=footer&animation=blinking" />
-  <img alt="Footer" src="https://capsule-render.vercel.app/api?type=waving&color=0:8B4513,5:FFD700,10:FFA500,15:FF8C42,20:FFD700,25:8B4513,30:FFA500,35:FF8C42,40:FFD700,45:FFA500,50:8B4513,55:FFD700,60:FF8C42,65:FFA500,70:FFD700,75:8B4513,80:FF8C42,85:FFA500,90:FFD700,95:FF8C42,100:8B4513&height=120&section=footer&animation=blinking" width="100%" />
-</picture>
+© TEBONSMA. All rights reserved.
