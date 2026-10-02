@@ -8,6 +8,7 @@ import EventsSection from '../components/EventsSection'
 import { events } from '../lib/events'
 import FAQ from '../components/FAQ'
 import Reveal from '../components/Reveal'
+import FeedPreview from '../components/feed/FeedPreview'
 
 const Home = () => {
   useEffect(() => {
@@ -72,6 +73,9 @@ const Home = () => {
           </Link>
         </div>
       </div>
+
+      {/* Latest posts from the members */}
+      <FeedPreview />
 
       {/* Events */}
       <div id="arrangementer" className="w-full scroll-mt-24">

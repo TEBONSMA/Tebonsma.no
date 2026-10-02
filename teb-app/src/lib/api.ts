@@ -20,21 +20,35 @@ export class ApiError extends Error {
   }
 }
 
-export async function apiFetch<T>(path: string, token: string, init: RequestInit = {}): Promise<T> {
-  let res: Response
+// For files the API serves itself, like pictures in the feed
+export const apiUrl = (path: string) => `${API_URL}${path}`
+
+// Without a token the request is made as a visitor, which only some endpoints allow
+async function request(path: string, token: string | null | undefined, init: RequestInit) {
   try {
-    res = await fetch(`${API_URL}${path}`, {
+    return await fetch(apiUrl(path), {
       ...init,
       headers: {
-        Authorization: `Bearer ${token}`,
-        ...(init.body ? { 'Content-Type': 'application/json' } : {}),
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        // A form (file upload) sets its own content type
+        ...(typeof init.body === 'string' ? { 'Content-Type': 'application/json' } : {}),
         ...init.headers,
       },
     })
   } catch {
     throw new ApiError('Fikk ikke kontakt med serveren', 0)
   }
+}
+
+export async function apiFetch<T>(path: string, token: string | null | undefined, init: RequestInit = {}): Promise<T> {
+  const res = await request(path, token, init)
   const body = (await res.json().catch(() => null)) as { error?: string } | null
   if (!res.ok) throw new ApiError(body?.error ?? `Feil fra serveren (${res.status})`, res.status)
   return body as T
+}
+
+export async function apiFetchBlob(path: string, token: string | null | undefined) {
+  const res = await request(path, token, {})
+  if (!res.ok) throw new ApiError(`Feil fra serveren (${res.status})`, res.status)
+  return res.blob()
 }
