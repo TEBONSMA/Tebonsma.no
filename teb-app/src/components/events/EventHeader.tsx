@@ -16,6 +16,7 @@ import {
 import { errorMessage, type Answer, type EventDetails, type FeedMember, type Rsvp } from '../../lib/feed'
 import { tebbetEventLink } from '../../lib/tebbet'
 import { BUTTON_GHOST, ERROR_TEXT } from '../feed/styles'
+import AddToCalendar from './AddToCalendar'
 import { useCountdown } from './useCountdown'
 
 const ANSWERS = [
@@ -124,13 +125,15 @@ function SignUp({ postId, rsvp, closed, token, onChange }: SignUpProps) {
 
 interface EventHeaderProps {
   postId: string
+  // The text of the post, which follows the event into a calendar
+  body: string
   event: EventDetails
   token: string | null
   onChange: (event: EventDetails) => void
 }
 
 // What a post shows when it is an event: what, when and where, and who is coming
-const EventHeader = ({ postId, event, token, onChange }: EventHeaderProps) => {
+const EventHeader = ({ postId, body, event, token, onChange }: EventHeaderProps) => {
   const status = getEventStatus(event.startsAt, event.endsAt)
   const countdown = useCountdown(status === 'upcoming' ? event.startsAt : null)
 
@@ -160,6 +163,8 @@ const EventHeader = ({ postId, event, token, onChange }: EventHeaderProps) => {
           </p>
         )}
       </div>
+
+      {status !== 'past' && <AddToCalendar post={{ id: postId, body, event }} />}
 
       {event.rsvp && token && (
         <SignUp
