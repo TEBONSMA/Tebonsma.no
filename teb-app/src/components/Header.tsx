@@ -3,9 +3,12 @@ import { Link, useLocation } from 'react-router-dom'
 import { Menu, X } from 'lucide-react'
 import AuthButton from './AuthButton'
 import AuthMenuItems from './AuthMenuItems'
+import NotificationBell from './feed/NotificationBell'
 
 const navItems = [
   { label: 'Hjem', href: '/' },
+  { label: 'Feed', href: '/feed' },
+  { label: 'Kalender', href: '/kalender' },
   { label: 'Spill', href: '/games' },
   { label: 'Om oss', href: '/about' },
 ]
@@ -45,24 +48,26 @@ const Header = () => {
           })}
         </nav>
 
-        <div className="hidden md:flex items-center gap-3">
+        <div className="flex items-center gap-2 md:gap-3">
           <Link
             to="/contact"
-            className="inline-flex items-center rounded-md bg-teb-orange px-4 py-2 text-sm font-semibold text-white hover:bg-teb-orange-light transition-colors"
+            className="hidden md:inline-flex items-center rounded-md bg-teb-orange px-4 py-2 text-sm font-semibold text-white hover:bg-teb-orange-light transition-colors"
           >
             Kontakt oss
           </Link>
-          <AuthButton />
+          <NotificationBell />
+          <div className="hidden md:block">
+            <AuthButton />
+          </div>
+          <button
+            onClick={() => setIsMenuOpen((open) => !open)}
+            aria-label="Åpne meny"
+            aria-expanded={isMenuOpen}
+            className="md:hidden text-white/80 hover:text-white p-2 -mr-2"
+          >
+            {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          </button>
         </div>
-
-        <button
-          onClick={() => setIsMenuOpen((open) => !open)}
-          aria-label="Åpne meny"
-          aria-expanded={isMenuOpen}
-          className="md:hidden text-white/80 hover:text-white p-2 -mr-2"
-        >
-          {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-        </button>
       </div>
 
       {isMenuOpen && (
