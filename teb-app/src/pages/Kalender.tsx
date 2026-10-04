@@ -9,7 +9,7 @@ import { useEvents } from '../components/events/useEvents'
 import PostEditor from '../components/feed/PostEditor'
 import { BUTTON_GHOST, BUTTON_PRIMARY, CARD } from '../components/feed/styles'
 import { useAuth } from '../auth/AuthContext'
-import { downloadEvents } from '../lib/calendarExport'
+import { canExport, downloadEvents } from '../lib/calendarExport'
 import { getEventStatus, type EventPost } from '../lib/events'
 
 function EventList({ title, events }: { title: string; events: EventPost[] }) {
@@ -37,6 +37,7 @@ export default function Kalender() {
   }, [])
 
   const dated = events?.filter(post => post.event.startsAt) ?? []
+  const exportable = dated.filter(canExport)
   const isPast = (post: EventPost) => getEventStatus(post.event.startsAt, post.event.endsAt) === 'past'
 
   return (
@@ -98,8 +99,8 @@ export default function Kalender() {
               <p className="text-sm text-white/50">Abonner, så dukker nye arrangementer opp i din egen kalender.</p>
               <div className="flex flex-wrap items-center gap-2">
                 <SubscribeCalendar token={token} />
-                {dated.length > 0 && (
-                  <button type="button" className={BUTTON_GHOST} onClick={() => downloadEvents(dated)}>
+                {exportable.length > 0 && (
+                  <button type="button" className={BUTTON_GHOST} onClick={() => downloadEvents(exportable)}>
                     <Download size={16} aria-hidden="true" />
                     Last ned (.ics)
                   </button>
