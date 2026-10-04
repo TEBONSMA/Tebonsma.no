@@ -41,9 +41,11 @@ interface EventFields {
   location: string
   startsAt: string
   endsAt: string
+  betting: boolean
 }
 
-const NEW_EVENT: EventFields = { title: '', location: '', startsAt: '', endsAt: '' }
+// New events are open for betting on TebBet unless the organizer says no
+const NEW_EVENT: EventFields = { title: '', location: '', startsAt: '', endsAt: '', betting: true }
 
 const eventFieldsOf = (post: Post | undefined): EventFields | null =>
   post?.event
@@ -52,6 +54,7 @@ const eventFieldsOf = (post: Post | undefined): EventFields | null =>
         location: post.event.location,
         startsAt: toLocalInput(post.event.startsAt),
         endsAt: toLocalInput(post.event.endsAt),
+        betting: post.event.betting,
       }
     : null
 
@@ -107,6 +110,7 @@ const PostEditor = ({ token, post, startAsEvent = false, onSaved, onCancel }: Po
           location: event.location,
           startsAt: fromLocalInput(event.startsAt),
           endsAt: fromLocalInput(event.endsAt),
+          betting: event.betting,
         },
       }),
     }
@@ -186,6 +190,18 @@ const PostEditor = ({ token, post, startAsEvent = false, onSaved, onCancel }: Po
             placeholder="Hvor? (valgfritt)"
             aria-label="Sted"
           />
+          <label className="flex items-start gap-2.5 py-1 text-sm text-white/80">
+            <input
+              type="checkbox"
+              checked={event.betting}
+              onChange={e => setEvent(fields => fields && { ...fields, betting: e.target.checked })}
+              className="mt-0.5 h-4 w-4 accent-teb-orange"
+            />
+            <span>
+              Åpent for spill på TebBet
+              <span className="block text-xs text-white/50">Medlemmene kan satse TEB-mynter på ting som skjer på arrangementet.</span>
+            </span>
+          </label>
           <div className="flex flex-wrap items-center justify-between gap-2">
             <p className="text-xs text-white/50">La tidspunktene stå tomme hvis datoen ikke er bestemt ennå.</p>
             {!post && !startAsEvent && (

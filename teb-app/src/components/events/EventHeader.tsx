@@ -14,6 +14,7 @@ import {
   statusDotClass,
 } from '../../lib/events'
 import { errorMessage, type Answer, type EventDetails, type FeedMember, type Rsvp } from '../../lib/feed'
+import { tebbetEventLink } from '../../lib/tebbet'
 import { BUTTON_GHOST, ERROR_TEXT } from '../feed/styles'
 import { useCountdown } from './useCountdown'
 
@@ -168,6 +169,12 @@ const EventHeader = ({ postId, event, token, onChange }: EventHeaderProps) => {
           token={token}
           onChange={rsvp => onChange({ ...event, rsvp })}
         />
+      )}
+
+      {token && event.betting && (
+        <a href={tebbetEventLink(postId)} className="inline-block text-sm font-medium text-teb-orange hover:underline">
+          Spill på arrangementet på TebBet
+        </a>
       )}
     </div>
   )

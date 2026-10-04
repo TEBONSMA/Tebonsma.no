@@ -38,6 +38,8 @@ export interface EventDetails {
   location: string
   startsAt: string | null
   endsAt: string | null
+  // Whether members can bet on it on TebBet
+  betting: boolean
   // Only on closed events, and only for members
   rsvp: Rsvp | null
 }
