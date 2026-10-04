@@ -247,7 +247,7 @@ const PostCard = ({ post, commentsOpen = false, onChange, onDelete }: PostCardPr
         ) : (
           <>
             {post.event && (
-              <EventHeader postId={post.id} event={post.event} token={token} onChange={event => onChange({ ...post, event })} />
+              <EventHeader postId={post.id} body={post.body} event={post.event} token={token} onChange={event => onChange({ ...post, event })} />
             )}
             {post.body && (
               <p className="whitespace-pre-wrap break-words text-[15px] leading-relaxed text-white/90">{withLinks(post.body)}</p>

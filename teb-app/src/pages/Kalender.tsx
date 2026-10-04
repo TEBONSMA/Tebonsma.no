@@ -1,13 +1,15 @@
 import { useEffect, useState } from 'react'
-import { CalendarPlus } from 'lucide-react'
+import { CalendarPlus, Download } from 'lucide-react'
 import Badge from '../components/Badge'
 import EventCard from '../components/EventCard'
 import Layout from '../components/Layout'
 import EventCalendar from '../components/events/EventCalendar'
+import SubscribeCalendar from '../components/events/SubscribeCalendar'
 import { useEvents } from '../components/events/useEvents'
 import PostEditor from '../components/feed/PostEditor'
 import { BUTTON_GHOST, BUTTON_PRIMARY, CARD } from '../components/feed/styles'
 import { useAuth } from '../auth/AuthContext'
+import { downloadEvents } from '../lib/calendarExport'
 import { getEventStatus, type EventPost } from '../lib/events'
 
 function EventList({ title, events }: { title: string; events: EventPost[] }) {
@@ -92,6 +94,18 @@ export default function Kalender() {
         <>
           <section className={`${CARD} p-4 md:p-6`}>
             <EventCalendar events={dated} />
+            <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-4">
+              <p className="text-sm text-white/50">Abonner, så dukker nye arrangementer opp i din egen kalender.</p>
+              <div className="flex flex-wrap items-center gap-2">
+                <SubscribeCalendar token={token} />
+                {dated.length > 0 && (
+                  <button type="button" className={BUTTON_GHOST} onClick={() => downloadEvents(dated)}>
+                    <Download size={16} aria-hidden="true" />
+                    Last ned (.ics)
+                  </button>
+                )}
+              </div>
+            </div>
           </section>
 
           {events.length === 0 && <p className="py-4 text-center text-white/60">Ingen arrangementer ennå.</p>}
