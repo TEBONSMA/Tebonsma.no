@@ -58,7 +58,13 @@ const MailList = ({
     <>
       <ul>
         {messages.map(mail => {
-          const who = OUTGOING.has(mail.folder) ? mail.to.map(senderName).join(', ') || 'Ingen mottaker' : senderName(mail.from)
+          // A conversation is listed by the people in it, a single mail by who wrote it or who it went to
+          const who =
+            mail.count > 1
+              ? mail.participants.map(p => senderName(p).split(' ')[0]).join(', ')
+              : OUTGOING.has(mail.folder)
+                ? mail.to.map(senderName).join(', ') || 'Ingen mottaker'
+                : senderName(mail.from)
           return (
             <li
               key={mail.id}
@@ -91,7 +97,10 @@ const MailList = ({
               >
                 <span className="flex items-center gap-2">
                   {!mail.seen && <span className="h-2 w-2 shrink-0 rounded-full bg-teb-orange" aria-label="Ulest" />}
-                  <span className={cn('min-w-0 flex-1 truncate text-sm', mail.seen ? 'text-white/70' : 'font-semibold text-white')}>{who}</span>
+                  <span className={cn('min-w-0 flex-1 truncate text-sm', mail.seen ? 'text-white/70' : 'font-semibold text-white')}>
+                    {who}
+                    {mail.count > 1 && <span className="ml-1.5 text-xs font-normal text-white/40" aria-label={`${mail.count} mails`}>{mail.count}</span>}
+                  </span>
                   {mail.hasAttachments && <Paperclip size={14} aria-label="Har vedlegg" className="shrink-0 text-white/50" />}
                   <span className="shrink-0 text-xs text-white/40">{listDate(mail.date)}</span>
                 </span>

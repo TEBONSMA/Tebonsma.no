@@ -1,31 +1,27 @@
 import { Link } from 'react-router-dom'
-import { ArrowLeft, Download, ImageOff } from 'lucide-react'
-import { downloadMailAttachment, senderName, type Folder, type Label, type MailAddress, type MailMessage } from '../../lib/mail'
-import { errorMessage, formatDate, formatSize } from '../../lib/feed'
-import { useState } from 'react'
-import { BUTTON_GHOST, CARD, ERROR_TEXT } from '../feed/styles'
+import { ArrowLeft } from 'lucide-react'
+import { conversationSummary, type Folder, type Label, type MailSummary } from '../../lib/mail'
 import LabelChips from './LabelChips'
 import MailActions, { type MailActionHandlers } from './MailActions'
-import MailFrame from './MailFrame'
-
-const people = (list: MailAddress[]) => list.map(a => (a.name ? `${a.name} <${a.address}>` : a.address)).join(', ')
+import MailMessageCard from './MailMessageCard'
 
 interface MailViewProps extends MailActionHandlers {
   token: string
-  message: MailMessage
-  // The list the mail was opened from, which Back returns to
+  // The mails of the conversation, oldest first
+  messages: MailSummary[]
+  // The list the conversation was opened from, which Back returns to
   folder: string
   search: string
   folders: Folder[]
   labels: Label[]
   busy: boolean
-  // Fetch the mail again with pictures from other sites in it
-  showImages: boolean
-  onShowImages: () => void
+  // The mails of the conversation that the buttons apply to
+  actedOn: MailSummary[]
 }
 
-const MailView = ({ token, message, folder, search, folders, labels, busy, showImages, onShowImages, ...actions }: MailViewProps) => {
-  const [downloadError, setDownloadError] = useState<string | null>(null)
+// A conversation: the buttons that act on all of it, then its mails one under the other
+const MailView = ({ token, messages, folder, search, folders, labels, busy, actedOn, ...actions }: MailViewProps) => {
+  const summary = conversationSummary(actedOn)
 
   return (
     <article className="space-y-4 p-4">
@@ -34,60 +30,20 @@ const MailView = ({ token, message, folder, search, folders, labels, busy, showI
         Tilbake
       </Link>
 
-      <MailActions token={token} mails={[message]} folders={folders} labels={labels} current={message.folder} disabled={busy} {...actions} />
+      <MailActions token={token} mails={[summary]} folders={folders} labels={labels} current={summary.folder} disabled={busy} {...actions} />
 
       <header className="space-y-1">
-        <h2 className="text-xl font-semibold text-white">{message.subject || '(uten emne)'}</h2>
-        <p className="text-sm text-white/80">
-          <span className="font-semibold text-white">{senderName(message.from)}</span>
-          {message.from?.name && <span className="text-white/50"> &lt;{message.from.address}&gt;</span>}
-        </p>
-        <p className="text-xs text-white/50">Til: {people(message.to) || '—'}</p>
-        {message.cc.length > 0 && <p className="text-xs text-white/50">Kopi: {people(message.cc)}</p>}
-        <p className="text-xs text-white/40">{formatDate(message.date)}</p>
-        <LabelChips ids={message.labels} labels={labels} className="pt-1" />
+        <h2 className="text-xl font-semibold text-white">{messages[0].subject || '(uten emne)'}</h2>
+        {messages.length > 1 && <p className="text-xs text-white/50">{messages.length} mails i samtalen</p>}
+        <LabelChips ids={summary.labels} labels={labels} className="pt-1" />
       </header>
 
-      {message.blockedImages > 0 && !showImages && (
-        <div className={`${CARD} flex flex-wrap items-center justify-between gap-2 p-3 text-sm text-white/70`}>
-          <span className="inline-flex items-center gap-2">
-            <ImageOff size={16} aria-hidden="true" />
-            Bilder fra andre nettsteder er skjult. De kan fortelle avsenderen at du har åpnet mailen.
-          </span>
-          <button type="button" className={BUTTON_GHOST} onClick={onShowImages}>
-            Vis bilder
-          </button>
-        </div>
-      )}
-
-      <MailFrame html={message.html} allowImages={showImages} title={message.subject || 'Mail'} />
-
-      {message.attachments.length > 0 && (
-        <section aria-label="Vedlegg" className="space-y-2">
-          <h3 className="text-sm font-semibold text-white/80">Vedlegg</h3>
-          <ul className="flex flex-wrap gap-2">
-            {message.attachments.map(attachment => (
-              <li key={attachment.n}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setDownloadError(null)
-                    downloadMailAttachment(token, message.id, attachment).catch(err => setDownloadError(errorMessage(err)))
-                  }}
-                  className="flex items-center gap-2 rounded-md border border-white/10 bg-white/5 px-3 py-2 text-left text-sm cursor-pointer transition-colors hover:border-white/20"
-                >
-                  <Download size={16} aria-hidden="true" className="shrink-0 text-white/50" />
-                  <span className="min-w-0">
-                    <span className="block max-w-48 truncate text-white/90">{attachment.name}</span>
-                    <span className="block text-xs text-white/50">{formatSize(attachment.size)}</span>
-                  </span>
-                </button>
-              </li>
-            ))}
-          </ul>
-          {downloadError && <p className={ERROR_TEXT}>{downloadError}</p>}
-        </section>
-      )}
+      <div className="space-y-3">
+        {messages.map((mail, index) => (
+          // Mails that were unread when the conversation was opened, and the newest, start out open
+          <MailMessageCard key={mail.id} token={token} mail={mail} defaultOpen={index === messages.length - 1 || !mail.seen} />
+        ))}
+      </div>
     </article>
   )
 }

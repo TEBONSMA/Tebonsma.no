@@ -3,6 +3,7 @@ import { useAuth } from '../../auth/AuthContext'
 import { errorMessage } from '../../lib/feed'
 import {
   getFolders,
+  getConversation,
   getMessage,
   listMessages,
   type Folder,
@@ -115,48 +116,84 @@ export function useMailList(folder: string, sort: MailSort, filter: MailFilter) 
     loadMore,
     retry: () => setAttempt(n => n + 1),
     change: (ids: string[], changes: (mail: MailSummary) => Partial<MailSummary>) =>
-      update(messages => messages.map(mail => (ids.includes(mail.id) ? { ...mail, ...changes(mail) } : mail))),
-    remove: (ids: string[]) => update(messages => messages.filter(mail => !ids.includes(mail.id))),
+      update(messages => messages.map(mail => (mail.ids.some(id => ids.includes(id)) ? { ...mail, ...changes(mail) } : mail))),
+    // A row goes when every mail it stands for has gone
+    remove: (ids: string[]) => update(messages => messages.filter(mail => !mail.ids.every(id => ids.includes(id)))),
   }
 }
 
-interface LoadedMessage {
+interface LoadedConversation {
   key: string
-  message: MailMessage | null
+  messages: MailSummary[]
   error: string | null
 }
 
-// One mail, read in full. Opening it marks it as read, which the caller is told about.
-export function useMessage(id: string | undefined, images: boolean, onOpened: (message: MailMessage) => void) {
+// The mails of the conversation the opened mail is part of. Opening it reads them, which the
+// caller is told about.
+export function useConversation(id: string | undefined, onOpened: (messages: MailSummary[]) => void) {
   const { user, isLoading } = useAuth()
   const token = user?.access_token ?? null
-  const [loaded, setLoaded] = useState<LoadedMessage | null>(null)
-  const key = `${id}:${images}`
+  const [loaded, setLoaded] = useState<LoadedConversation | null>(null)
+  const key = `${id}`
   const current = loaded?.key === key ? loaded : null
 
   useEffect(() => {
     if (isLoading || !token || !id) return
     let active = true
-    getMessage(token, id, images)
-      .then(message => {
+    getConversation(token, id)
+      .then(({ messages }) => {
         if (!active) return
-        setLoaded({ key, message, error: null })
-        onOpened(message)
+        setLoaded({ key, messages, error: null })
+        onOpened(messages)
       })
+      .catch(err => active && setLoaded({ key, messages: [], error: errorMessage(err) }))
+    return () => {
+      active = false
+    }
+    // onOpened only tells the list about the mails; a new function each render isn't a reason to read them again
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoading, token, id, key])
+
+  return {
+    messages: current && !current.error ? current.messages : null,
+    error: current?.error ?? null,
+    loading: !!id && !current,
+    // The mails were changed from here (read, starred, labelled), so what is shown follows
+    patch: (ids: string[], changes: (mail: MailSummary) => Partial<MailSummary>) =>
+      setLoaded(state =>
+        state?.key === key
+          ? { ...state, messages: state.messages.map(mail => (ids.includes(mail.id) ? { ...mail, ...changes(mail) } : mail)) }
+          : state,
+      ),
+  }
+}
+
+interface LoadedBody {
+  key: string
+  message: MailMessage | null
+  error: string | null
+}
+
+// One mail's content, fetched once its card is opened
+export function useMessageBody(id: string, open: boolean, images: boolean) {
+  const { user, isLoading } = useAuth()
+  const token = user?.access_token ?? null
+  const [loaded, setLoaded] = useState<LoadedBody | null>(null)
+  const key = `${id}:${images}`
+  const current = loaded?.key === key ? loaded : null
+
+  useEffect(() => {
+    if (isLoading || !token || !open) return
+    let active = true
+    getMessage(token, id, images)
+      .then(message => active && setLoaded({ key, message, error: null }))
       .catch(err => active && setLoaded({ key, message: null, error: errorMessage(err) }))
     return () => {
       active = false
     }
-    // onOpened only tells the list about the mail; a new function each render isn't a reason to read it again
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoading, token, id, images, key])
+  }, [isLoading, token, open, id, images, key])
 
-  return {
-    message: current?.message ?? null,
-    error: current?.error ?? null,
-    loading: !!id && !current,
-    // The mail was changed from here (read, starred, labelled), so what is shown follows
-    patch: (changes: Partial<MailMessage>) =>
-      setLoaded(state => (state?.key === key && state.message ? { ...state, message: { ...state.message, ...changes } } : state)),
-  }
+  // A mail that has been loaded stays on screen while it is fetched again with pictures
+  const shown = current ?? loaded
+  return { message: shown?.message ?? null, error: current?.error ?? null, loading: open && !current && !shown?.message }
 }

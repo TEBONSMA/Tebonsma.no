@@ -21,7 +21,13 @@ export interface Folder {
 }
 
 export interface MailSummary {
+  // For a conversation, the id of its newest mail
   id: string
+  // The mails the row stands for: just this one, or the whole conversation. Changes apply to all of them.
+  ids: string[]
+  count: number
+  unreadCount: number
+  participants: MailAddress[]
   folder: string
   from: MailAddress | null
   to: MailAddress[]
@@ -113,6 +119,24 @@ export function listMessages(token: string, { folder, sort, filter, offset, limi
   if (filter.attachment) query.set('attachment', '1')
   if (filter.label) query.set('label', filter.label)
   return apiFetch<{ messages: MailSummary[]; nextOffset: number | null; total: number }>(`/mail/messages?${query}`, token)
+}
+
+// The mails of a conversation, oldest first. Those that were unread have been marked as read.
+export const getConversation = (token: string, id: string) =>
+  apiFetch<{ messages: MailSummary[] }>(`/mail/threads/${encodeURIComponent(id)}`, token)
+
+// What a whole conversation looks like to the buttons that act on it
+export function conversationSummary(messages: MailSummary[]): MailSummary {
+  const newest = messages[messages.length - 1]
+  return {
+    ...newest,
+    ids: messages.map(mail => mail.id).reverse(),
+    count: messages.length,
+    unreadCount: messages.filter(mail => !mail.seen).length,
+    seen: messages.every(mail => mail.seen),
+    flagged: messages.some(mail => mail.flagged),
+    labels: [...new Set(messages.flatMap(mail => mail.labels))],
+  }
 }
 
 export const getMessage = (token: string, id: string, images = false) =>

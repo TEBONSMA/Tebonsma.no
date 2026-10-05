@@ -9,18 +9,19 @@ import MailList from '../components/mail/MailList'
 import MailSidebar from '../components/mail/MailSidebar'
 import MailToolbar from '../components/mail/MailToolbar'
 import MailView from '../components/mail/MailView'
-import { useFolders, useMailList, useMessage } from '../components/mail/useMail'
+import { useConversation, useFolders, useMailList } from '../components/mail/useMail'
 import { useAuth } from '../auth/AuthContext'
 import { errorMessage } from '../lib/feed'
 import {
   changeLabels,
   deleteForever,
   emptyTrash,
+  conversationSummary,
+  isVirtualFolder,
   moveMessages,
   restoreMessages,
   setFlags,
   type MailFilter,
-  type MailMessage,
   type MailSort,
   type MailSummary,
 } from '../lib/mail'
@@ -43,8 +44,6 @@ export default function Mail() {
   const filter = filterFrom(params)
   const [sort, setSort] = useState<MailSort>('new')
   const [showFolders, setShowFolders] = useState(false)
-  // The mail that pictures from other sites were asked for in, so it resets for the next mail
-  const [imagesFor, setImagesFor] = useState<string | null>(null)
   // The chosen mails belong to one list; another folder or search starts with none chosen
   const scope = `${folder}|${search}`
   const [chosen, setChosen] = useState<{ scope: string; ids: string[] }>({ scope, ids: [] })
@@ -53,14 +52,15 @@ export default function Mail() {
 
   const { folders, labels, error: folderError, refresh } = useFolders()
   const list = useMailList(folder, sort, filter)
-  const showImages = !!id && imagesFor === id
   const checked = new Set(chosen.scope === scope ? chosen.ids : [])
 
-  const opened = useMessage(id, showImages, (message: MailMessage) => {
-    const listed = list.messages?.find(mail => mail.id === message.id)
-    list.change([message.id], () => ({ seen: true }))
-    // The counts only change when a mail that was unread has been read
-    if (listed && !listed.seen) refresh()
+  // Opening a conversation reads it, so the list and the counts follow when anything was unread
+  const opened = useConversation(id, messages => {
+    const ids = messages.map(mail => mail.id)
+    if (messages.some(mail => !mail.seen)) {
+      list.change(ids, () => ({ seen: true, unreadCount: 0 }))
+      refresh()
+    }
   })
 
   useEffect(() => {
@@ -106,18 +106,24 @@ export default function Mail() {
     list.remove(ids)
     setChosen({ scope, ids: [] })
     refresh()
-    if (id && ids.includes(id)) navigate(`/mail/${encodeURIComponent(folder)}${search}`, { replace: true })
+    if (opened.messages?.some(mail => ids.includes(mail.id))) navigate(`/mail/${encodeURIComponent(folder)}${search}`, { replace: true })
   }
 
   const handlersFor = (mails: MailSummary[]): MailActionHandlers => {
-    const ids = mails.map(mail => mail.id)
+    // A row can stand for a whole conversation, and what is done to it is done to every mail in it
+    const ids = mails.flatMap(mail => mail.ids)
+    // What a flag change does to a row's own fields
+    const flagged = (change: { seen?: boolean; flagged?: boolean }) => (mail: MailSummary) => ({
+      ...(change.flagged !== undefined && { flagged: change.flagged }),
+      ...(change.seen !== undefined && { seen: change.seen, unreadCount: change.seen ? 0 : mail.count }),
+    })
     return {
       onFlags: change =>
         run(
           () => setFlags(token!, ids, change),
           () => {
-            list.change(ids, () => change)
-            if (id && ids.includes(id)) opened.patch(change)
+            list.change(ids, flagged(change))
+            opened.patch(ids, flagged(change))
             refresh()
           },
         ),
@@ -125,9 +131,11 @@ export default function Mail() {
         run(
           () => changeLabels(token!, ids, add, remove),
           () => {
-            const next = (current: string[]) => [...current.filter(label => !add.includes(label) && !remove.includes(label)), ...add]
-            list.change(ids, mail => ({ labels: next(mail.labels) }))
-            if (id && ids.includes(id) && opened.message) opened.patch({ labels: next(opened.message.labels) })
+            const next = (mail: MailSummary) => ({
+              labels: [...mail.labels.filter(label => !add.includes(label) && !remove.includes(label)), ...add],
+            })
+            list.change(ids, next)
+            opened.patch(ids, next)
           },
         ),
       onMove: target =>
@@ -171,7 +179,10 @@ export default function Mail() {
   }
 
   const allFolders = folders ?? []
-  const openSummary: MailSummary | null = opened.message
+  // What is done to an open conversation is done to its mails in the folder it was opened from.
+  // The replies in Sent stay there when the conversation is archived from the inbox.
+  const inFolder = opened.messages?.filter(mail => isVirtualFolder(folder) || mail.folder === folder) ?? []
+  const actedOn = inFolder.length > 0 ? inFolder : (opened.messages ?? [])
 
   return (
     <Layout mainClassName="w-full max-w-7xl mx-auto px-4 pt-20 pb-6">
@@ -273,18 +284,17 @@ export default function Mail() {
               </Link>
             </div>
           )}
-          {opened.message && openSummary && (
+          {opened.messages && opened.messages.length > 0 && (
             <MailView
               token={token}
-              message={opened.message}
+              messages={opened.messages}
               folder={folder}
               search={search}
               folders={allFolders}
               labels={labels}
               busy={busy}
-              showImages={showImages}
-              onShowImages={() => setImagesFor(id ?? null)}
-              {...handlersFor([openSummary])}
+              {...handlersFor([conversationSummary(actedOn)])}
+              actedOn={actedOn}
             />
           )}
         </section>
