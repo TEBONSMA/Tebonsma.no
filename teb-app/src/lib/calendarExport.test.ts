@@ -41,6 +41,21 @@ describe('calendarExport', () => {
     expect(ics).not.toContain('UID:missing-end@tebonsma.no')
   })
 
+  it('excludes events with malformed timestamps', () => {
+    const badStart = makePost({ id: 'bad-start', event: { ...makePost().event, startsAt: 'not-a-date' } })
+    const badEnd = makePost({ id: 'bad-end', event: { ...makePost().event, endsAt: '2026-13-45T99:00:00Z' } })
+
+    expect(canExport(badStart)).toBe(false)
+    expect(canExport(badEnd)).toBe(false)
+    expect(googleCalendarUrl(badStart)).toBeNull()
+    expect(googleCalendarUrl(badEnd)).toBeNull()
+
+    const ics = toIcs([badStart, badEnd, makePost({ id: 'valid' })])
+    expect(ics.match(/BEGIN:VEVENT/g)?.length).toBe(1)
+    expect(ics).not.toContain('bad-start')
+    expect(ics).not.toContain('bad-end')
+  })
+
   it('uses stable uid and UTC timestamps for Google and iCalendar', () => {
     const post = makePost({ id: 'stable-id' })
     const google = new URL(googleCalendarUrl(post)!)
