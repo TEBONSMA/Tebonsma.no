@@ -7,6 +7,9 @@ interface RichEditorProps {
   // What the editor starts with. Later changes go out through onChange, not back in here.
   initialHtml: string
   onChange: (html: string) => void
+  // Without a frame, filling the space it is given, with the formatting buttons under the text and only when asked for
+  bare?: boolean
+  showToolbar?: boolean
 }
 
 interface ToolProps {
@@ -35,7 +38,7 @@ const Tool = ({ label, icon: Icon, active, onClick }: ToolProps) => (
 )
 
 // Mail is written with simple formatting only: what the API lets through when the mail is sent
-const RichEditor = ({ initialHtml, onChange }: RichEditorProps) => {
+const RichEditor = ({ initialHtml, onChange, bare = false, showToolbar = true }: RichEditorProps) => {
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -52,7 +55,7 @@ const RichEditor = ({ initialHtml, onChange }: RichEditorProps) => {
     editorProps: {
       attributes: {
         'aria-label': 'Innhold i mailen',
-        class: 'min-h-48 max-h-[50vh] overflow-y-auto px-3 py-2 text-sm text-white outline-none [&_a]:text-teb-orange [&_a]:underline [&_blockquote]:border-l-2 [&_blockquote]:border-white/20 [&_blockquote]:pl-3 [&_blockquote]:text-white/60 [&_h2]:text-lg [&_h2]:font-semibold [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:my-1 [&_ul]:list-disc [&_ul]:pl-5',
+        class: `${bare ? 'min-h-40 px-4 py-3' : 'min-h-48 max-h-[50vh] overflow-y-auto px-3 py-2'} text-sm text-white outline-none [&_a]:text-teb-orange [&_a]:underline [&_blockquote]:border-l-2 [&_blockquote]:border-white/20 [&_blockquote]:pl-3 [&_blockquote]:text-white/60 [&_h2]:text-lg [&_h2]:font-semibold [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:my-1 [&_ul]:list-disc [&_ul]:pl-5`,
       },
     },
   })
@@ -72,7 +75,7 @@ const RichEditor = ({ initialHtml, onChange }: RichEditorProps) => {
     }),
   })
 
-  if (!editor || !active) return <div className="min-h-48 rounded-md border border-white/10 bg-white/5" />
+  if (!editor || !active) return <div className={bare ? 'min-h-40 flex-1' : 'min-h-48 rounded-md border border-white/10 bg-white/5'} />
 
   const setLink = () => {
     const previous = editor.getAttributes('link').href as string | undefined
@@ -82,20 +85,35 @@ const RichEditor = ({ initialHtml, onChange }: RichEditorProps) => {
     else editor.chain().focus().extendMarkRange('link').setLink({ href: url.trim() }).run()
   }
 
+  const toolbar = (
+    <div role="toolbar" aria-label="Formatering" className={cn('flex flex-wrap gap-0.5 p-1', bare ? 'border-t border-white/10 px-3' : 'border-b border-white/10')}>
+      <Tool label="Fet" icon={Bold} active={active.bold} onClick={() => editor.chain().focus().toggleBold().run()} />
+      <Tool label="Kursiv" icon={Italic} active={active.italic} onClick={() => editor.chain().focus().toggleItalic().run()} />
+      <Tool label="Understreket" icon={Underline} active={active.underline} onClick={() => editor.chain().focus().toggleUnderline().run()} />
+      <Tool label="Gjennomstreket" icon={Strikethrough} active={active.strike} onClick={() => editor.chain().focus().toggleStrike().run()} />
+      <Tool label="Overskrift" icon={Heading2} active={active.heading} onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} />
+      <Tool label="Punktliste" icon={List} active={active.bullet} onClick={() => editor.chain().focus().toggleBulletList().run()} />
+      <Tool label="Nummerert liste" icon={ListOrdered} active={active.ordered} onClick={() => editor.chain().focus().toggleOrderedList().run()} />
+      <Tool label="Sitat" icon={Quote} active={active.quote} onClick={() => editor.chain().focus().toggleBlockquote().run()} />
+      <Tool label="Lenke" icon={Link2} active={active.link} onClick={setLink} />
+      <Tool label="Fjern formatering" icon={RemoveFormatting} onClick={() => editor.chain().focus().clearNodes().unsetAllMarks().run()} />
+    </div>
+  )
+
+  if (bare) {
+    return (
+      <div className="flex min-h-0 flex-1 flex-col">
+        <div className="min-h-0 flex-1 overflow-y-auto" onClick={() => editor.chain().focus().run()}>
+          <EditorContent editor={editor} />
+        </div>
+        {showToolbar && toolbar}
+      </div>
+    )
+  }
+
   return (
     <div className="rounded-md border border-white/10 bg-white/5 focus-within:border-teb-orange">
-      <div role="toolbar" aria-label="Formatering" className="flex flex-wrap gap-0.5 border-b border-white/10 p-1">
-        <Tool label="Fet" icon={Bold} active={active.bold} onClick={() => editor.chain().focus().toggleBold().run()} />
-        <Tool label="Kursiv" icon={Italic} active={active.italic} onClick={() => editor.chain().focus().toggleItalic().run()} />
-        <Tool label="Understreket" icon={Underline} active={active.underline} onClick={() => editor.chain().focus().toggleUnderline().run()} />
-        <Tool label="Gjennomstreket" icon={Strikethrough} active={active.strike} onClick={() => editor.chain().focus().toggleStrike().run()} />
-        <Tool label="Overskrift" icon={Heading2} active={active.heading} onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} />
-        <Tool label="Punktliste" icon={List} active={active.bullet} onClick={() => editor.chain().focus().toggleBulletList().run()} />
-        <Tool label="Nummerert liste" icon={ListOrdered} active={active.ordered} onClick={() => editor.chain().focus().toggleOrderedList().run()} />
-        <Tool label="Sitat" icon={Quote} active={active.quote} onClick={() => editor.chain().focus().toggleBlockquote().run()} />
-        <Tool label="Lenke" icon={Link2} active={active.link} onClick={setLink} />
-        <Tool label="Fjern formatering" icon={RemoveFormatting} onClick={() => editor.chain().focus().clearNodes().unsetAllMarks().run()} />
-      </div>
+      {showToolbar && toolbar}
       <EditorContent editor={editor} />
     </div>
   )

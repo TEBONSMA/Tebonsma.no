@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { BUTTON_GHOST } from '../feed/styles'
 
 interface UndoToastProps {
@@ -39,15 +40,16 @@ const UndoToast = ({ message, until, onUndo, onDone, busy, error }: UndoToastPro
     return () => clearTimeout(timer)
   }, [end, error])
 
-  return (
-    <div role="status" className="fixed bottom-4 left-1/2 z-[60] flex -translate-x-1/2 items-center gap-3 rounded-lg border border-white/10 bg-neutral-900/95 px-4 py-3 text-sm text-white shadow-[0_8px_32px_rgba(0,0,0,0.45)] backdrop-blur-md">
+  return createPortal(
+    <div role="status" className="fixed bottom-4 left-1/2 z-[110] flex -translate-x-1/2 items-center gap-3 rounded-lg border border-white/10 bg-neutral-900/95 px-4 py-3 text-sm text-white shadow-[0_8px_32px_rgba(0,0,0,0.45)] backdrop-blur-md">
       <span>{error ?? message}</span>
       {canUndo && !error && (
         <button type="button" className={BUTTON_GHOST} onClick={onUndo} disabled={busy}>
           Angre ({left})
         </button>
       )}
-    </div>
+    </div>,
+    document.body,
   )
 }
 

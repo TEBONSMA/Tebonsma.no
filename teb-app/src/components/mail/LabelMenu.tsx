@@ -1,10 +1,10 @@
-import { useRef, useState, type FormEvent } from 'react'
+import { useState, type FormEvent } from 'react'
 import { Check, Tag } from 'lucide-react'
 import { errorMessage } from '../../lib/feed'
 import { createLabel, type Label, type MailSummary } from '../../lib/mail'
-import { ACTION, ERROR_TEXT, INPUT, MENU, MENU_ITEM } from '../feed/styles'
-import { useDismiss } from '../feed/useDismiss'
+import { ACTION, ERROR_TEXT, INPUT, MENU_ITEM } from '../feed/styles'
 import { LABEL_DOT } from './labelStyles'
+import PopoverMenu from './PopoverMenu'
 
 interface LabelMenuProps {
   token: string
@@ -19,12 +19,8 @@ interface LabelMenuProps {
 // Labels can be put on many mails at once: a label that every selected mail has is checked, and
 // clicking it takes it off them all; otherwise clicking puts it on them all
 const LabelMenu = ({ token, labels, mails, onChange, onCreated }: LabelMenuProps) => {
-  const rootRef = useRef<HTMLDivElement>(null)
-  const [open, setOpen] = useState(false)
   const [name, setName] = useState('')
   const [error, setError] = useState<string | null>(null)
-  useDismiss(rootRef, open, () => setOpen(false))
-
   const has = (label: Label) => mails.length > 0 && mails.every(mail => mail.labels.includes(label.id))
 
   const make = async (e: FormEvent) => {
@@ -43,13 +39,18 @@ const LabelMenu = ({ token, labels, mails, onChange, onCreated }: LabelMenuProps
   }
 
   return (
-    <div ref={rootRef} className="relative">
-      <button type="button" className={ACTION} onClick={() => setOpen(o => !o)} aria-haspopup="menu" aria-expanded={open} aria-label="Etiketter" title="Etiketter">
-        <Tag size={16} aria-hidden="true" />
-        <span className="hidden sm:inline">Etikett</span>
-      </button>
-      {open && (
-        <div role="menu" className={`${MENU} left-0 top-[calc(100%+4px)] w-60`}>
+    <PopoverMenu
+      label="Etiketter"
+      width={240}
+      trigger={({ onClick, open }) => (
+        <button type="button" className={ACTION} onClick={onClick} aria-haspopup="menu" aria-expanded={open} aria-label="Etiketter" title="Etiketter">
+          <Tag size={16} aria-hidden="true" />
+          <span className="hidden sm:inline">Etikett</span>
+        </button>
+      )}
+    >
+      {() => (
+        <>
           <ul className="max-h-60 overflow-y-auto">
             {labels.length === 0 && <li className="px-3 py-2 text-sm text-white/50">Ingen etiketter ennå</li>}
             {labels.map(label => {
@@ -75,9 +76,9 @@ const LabelMenu = ({ token, labels, mails, onChange, onCreated }: LabelMenuProps
             <input className={INPUT} value={name} onChange={e => setName(e.target.value)} placeholder="Ny etikett" maxLength={30} aria-label="Navn på ny etikett" />
             {error && <p className={`${ERROR_TEXT} mt-1`}>{error}</p>}
           </form>
-        </div>
+        </>
       )}
-    </div>
+    </PopoverMenu>
   )
 }
 

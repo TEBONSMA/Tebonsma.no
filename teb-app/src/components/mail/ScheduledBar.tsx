@@ -1,8 +1,7 @@
-import { useRef, useState } from 'react'
 import { CalendarClock } from 'lucide-react'
 import { formatDate } from '../../lib/feed'
-import { BUTTON_GHOST, CARD, MENU } from '../feed/styles'
-import { useDismiss } from '../feed/useDismiss'
+import { BUTTON_GHOST, CARD } from '../feed/styles'
+import PopoverMenu from './PopoverMenu'
 import TimeChoices from './TimeChoices'
 
 interface ScheduledBarProps {
@@ -16,10 +15,6 @@ interface ScheduledBarProps {
 
 // What can be done with a mail that is waiting to be sent
 const ScheduledBar = ({ sendAt, busy, onReschedule, onEdit }: ScheduledBarProps) => {
-  const rootRef = useRef<HTMLDivElement>(null)
-  const [open, setOpen] = useState(false)
-  useDismiss(rootRef, open, () => setOpen(false))
-
   return (
     <div className={`${CARD} flex flex-wrap items-center justify-between gap-3 p-3`}>
       <p className="inline-flex items-center gap-2 text-sm text-white/80">
@@ -27,23 +22,26 @@ const ScheduledBar = ({ sendAt, busy, onReschedule, onEdit }: ScheduledBarProps)
         {sendAt ? `Sendes ${formatDate(sendAt)}` : 'Venter på å bli sendt'}
       </p>
       <div className="flex flex-wrap items-center gap-2">
-        <div ref={rootRef} className="relative">
-          <button type="button" className={BUTTON_GHOST} disabled={busy} onClick={() => setOpen(o => !o)} aria-haspopup="menu" aria-expanded={open}>
-            Endre tidspunkt
-          </button>
-          {open && (
-            <div role="menu" className={`${MENU} right-0 top-[calc(100%+4px)] w-64`}>
-              <TimeChoices
-                onChoose={when => {
-                  setOpen(false)
-                  onReschedule(when)
-                }}
-                submitLabel="Planlegg på nytt"
-                inputId="reschedule-at"
-              />
-            </div>
+        <PopoverMenu
+          label="Endre tidspunkt"
+          width={256}
+          trigger={({ onClick, open }) => (
+            <button type="button" className={BUTTON_GHOST} disabled={busy} onClick={onClick} aria-haspopup="menu" aria-expanded={open}>
+              Endre tidspunkt
+            </button>
           )}
-        </div>
+        >
+          {close => (
+            <TimeChoices
+              onChoose={when => {
+                close()
+                onReschedule(when)
+              }}
+              submitLabel="Planlegg på nytt"
+              inputId="reschedule-at"
+            />
+          )}
+        </PopoverMenu>
         <button type="button" className={BUTTON_GHOST} disabled={busy} onClick={onEdit}>
           Avbryt og rediger
         </button>

@@ -1,4 +1,4 @@
-import { useId, useState, type ClipboardEvent, type KeyboardEvent } from 'react'
+import { useId, useState, type ClipboardEvent, type KeyboardEvent, type ReactNode } from 'react'
 import { X } from 'lucide-react'
 import type { Member, Person } from '../../lib/mail'
 import { cn } from '../../lib/utils'
@@ -10,6 +10,10 @@ interface RecipientInputProps {
   people: Person[]
   onChange: (people: Person[]) => void
   members: Member[]
+  // Without a frame around the field, in a row of its own with a line under it, like Gmail
+  bare?: boolean
+  // Shown at the end of the row, such as the buttons that open Kopi and Blindkopi
+  trailing?: ReactNode
 }
 
 const LOOKS_LIKE_ADDRESS = /^[^\s@<>,;]+@[^\s@<>,;]+\.[^\s@<>,;]+$/
@@ -19,7 +23,7 @@ const MAX_SUGGESTIONS = 6
 const personLabel = (person: Person) => person.name || person.address || ''
 
 // Who a mail goes to, as chips: members are found by name, and other addresses are typed in
-const RecipientInput = ({ label, people, onChange, members }: RecipientInputProps) => {
+const RecipientInput = ({ label, people, onChange, members, bare, trailing }: RecipientInputProps) => {
   const id = useId()
   const [text, setText] = useState('')
   const [focused, setFocused] = useState(false)
@@ -71,12 +75,17 @@ const RecipientInput = ({ label, people, onChange, members }: RecipientInputProp
   }
 
   return (
-    <div className="relative flex items-start gap-2">
-      <label htmlFor={id} className="w-20 shrink-0 pt-2 text-sm text-white/50">
+    <div className={cn('relative flex items-start gap-2', bare && 'border-b border-white/10 px-4')}>
+      <label htmlFor={id} className={cn('shrink-0 text-sm text-white/50', bare ? 'w-12 pt-2.5' : 'w-20 pt-2')}>
         {label}
       </label>
       <div className="relative min-w-0 flex-1">
-        <div className={cn('flex flex-wrap items-center gap-1 rounded-md border border-white/10 bg-white/5 px-2 py-1.5', focused && 'border-teb-orange')}>
+        <div
+          className={cn(
+            'flex flex-wrap items-center gap-1',
+            bare ? 'py-1.5' : cn('rounded-md border border-white/10 bg-white/5 px-2 py-1.5', focused && 'border-teb-orange'),
+          )}
+        >
           {people.map((person, index) => (
             <span key={`${person.memberId ?? person.address}:${index}`} className="inline-flex items-center gap-1 rounded-full bg-white/10 py-0.5 pl-2.5 pr-1 text-sm text-white">
               <span className="max-w-48 truncate" title={person.address}>{personLabel(person)}</span>
@@ -103,7 +112,7 @@ const RecipientInput = ({ label, people, onChange, members }: RecipientInputProp
             }}
             autoComplete="off"
             className="min-w-32 flex-1 bg-transparent py-0.5 text-sm text-white placeholder-white/30 outline-none"
-            placeholder={people.length === 0 ? 'Navn eller e-postadresse' : ''}
+            placeholder={people.length === 0 && !bare ? 'Navn eller e-postadresse' : ''}
           />
         </div>
         {focused && suggestions.length > 0 && (
@@ -127,6 +136,7 @@ const RecipientInput = ({ label, people, onChange, members }: RecipientInputProp
           </ul>
         )}
       </div>
+      {trailing && <div className="shrink-0 pt-2.5 text-xs text-white/50">{trailing}</div>}
     </div>
   )
 }

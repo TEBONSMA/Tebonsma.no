@@ -9,6 +9,7 @@ import {
   Inbox,
   Pencil,
   Settings,
+  Share2,
   Plus,
   Send,
   ShieldAlert,
@@ -19,7 +20,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { errorMessage } from '../../lib/feed'
-import { createFolder, deleteLabel, type Folder, type Label, type Role } from '../../lib/mail'
+import { createFolder, deleteLabel, type Folder, type Label, type Role, type SharedCount } from '../../lib/mail'
 import { cn } from '../../lib/utils'
 import { BUTTON_PRIMARY, ERROR_TEXT, INPUT } from '../feed/styles'
 import { LABEL_DOT } from './labelStyles'
@@ -44,6 +45,7 @@ interface MailSidebarProps {
   token: string
   folders: Folder[] | null
   labels: Label[]
+  shared: SharedCount
   // The list being looked at, and the label if it is one
   active: string
   activeLabel: string | undefined
@@ -81,7 +83,7 @@ const Entry = ({ to, icon: Icon, name, count = 0, active, onNavigate }: EntryPro
   </Link>
 )
 
-const MailSidebar = ({ token, folders, labels, active, activeLabel, onChanged, onNavigate, onCompose }: MailSidebarProps) => {
+const MailSidebar = ({ token, folders, labels, shared, active, activeLabel, onChanged, onNavigate, onCompose }: MailSidebarProps) => {
   const [adding, setAdding] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -136,6 +138,7 @@ const MailSidebar = ({ token, folders, labels, active, activeLabel, onChanged, o
         <>
           <Entry to={link('favorites')} icon={Star} name="Favoritter" active={active === 'favorites'} onNavigate={onNavigate} />
           <Entry to={link('unread')} icon={Mail} name="Uleste" count={unreadTotal} active={active === 'unread'} onNavigate={onNavigate} />
+          <Entry to={link('shared')} icon={Share2} name="Delt med meg" count={shared.unseen} active={active === 'shared'} onNavigate={onNavigate} />
         </>
       )}
       {roles.slice(1).map(folder => (

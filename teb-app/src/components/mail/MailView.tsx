@@ -22,11 +22,13 @@ interface MailViewProps extends MailActionHandlers {
   // Starts a reply to the newest mail of the conversation, or forwards it
   onCompose: (mode: Exclude<ComposeMode, 'draft'>) => void
   // Set for a mail in Planlagt, which can be given a new time or taken back for editing instead of being answered
+  // Starts sharing one of the mails
+  onShare: (mail: MailSummary) => void
   scheduled: { sendAt: string | null; onReschedule: (when: Date) => void; onEdit: () => void } | null
 }
 
 // A conversation: the buttons that act on all of it, then its mails one under the other
-const MailView = ({ token, messages, folder, search, folders, labels, busy, actedOn, onCompose, scheduled, ...actions }: MailViewProps) => {
+const MailView = ({ token, messages, folder, search, folders, labels, busy, actedOn, onCompose, onShare, scheduled, ...actions }: MailViewProps) => {
   const summary = conversationSummary(actedOn)
 
   return (
@@ -69,7 +71,7 @@ const MailView = ({ token, messages, folder, search, folders, labels, busy, acte
       <div className="space-y-3">
         {messages.map((mail, index) => (
           // Mails that were unread when the conversation was opened, and the newest, start out open
-          <MailMessageCard key={mail.id} token={token} mail={mail} defaultOpen={index === messages.length - 1 || !mail.seen} />
+          <MailMessageCard key={mail.id} token={token} mail={mail} defaultOpen={index === messages.length - 1 || !mail.seen} onShare={onShare} />
         ))}
       </div>
     </article>

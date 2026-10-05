@@ -102,7 +102,13 @@ export const isVirtualFolder = (key: string): key is keyof typeof VIRTUAL_FOLDER
 
 export const MAIL_PAGE_SIZE = 30
 
-export const getFolders = (token: string) => apiFetch<{ folders: Folder[]; labels: Label[] }>('/mail/folders', token)
+// What is under "Delt med meg": mails other members have shared, which are kept by the site, not in the mailbox
+export interface SharedCount {
+  total: number
+  unseen: number
+}
+
+export const getFolders = (token: string) => apiFetch<{ folders: Folder[]; labels: Label[]; shared: SharedCount }>('/mail/folders', token)
 
 export const createFolder = (token: string, name: string) =>
   apiFetch<{ folders: Folder[] }>('/mail/folders', token, json('POST', { name }))
@@ -409,3 +415,41 @@ export const rescheduleMail = (token: string, id: string, sendAt: string) =>
 // The mail goes back to Kladder; the id of the draft is returned
 export const cancelScheduled = (token: string, id: string) =>
   apiFetch<{ draftId: string }>(`/mail/scheduled/${encodeURIComponent(id)}`, token, json('DELETE'))
+
+// --- Sharing ---
+
+export const shareWithMember = (token: string, id: string, memberId: string, note: string) =>
+  apiFetch<unknown>(`/mail/messages/${encodeURIComponent(id)}/share/member`, token, json('POST', { memberId, note }))
+
+export const shareToFeed = (token: string, id: string, comment: string, visibility: 'public' | 'members') =>
+  apiFetch<{ post: { id: string }; skipped: string[] }>(`/mail/messages/${encodeURIComponent(id)}/share/feed`, token, json('POST', { comment, visibility }))
+
+// A mail somebody shared, as a copy kept by the site
+export interface SharedMail {
+  id: string
+  sharedBy: { id: string; name: string; avatar: string | null } | null
+  sharedAt: string
+  note: string
+  subject: string
+  from: MailAddress | null
+  to: MailAddress[]
+  cc: MailAddress[]
+  date: string
+  html: string
+  text: string
+  attachments: MailAttachment[]
+}
+
+export const getShared = (token: string, id: string) => apiFetch<SharedMail>(`/mail/shared/${encodeURIComponent(id)}`, token)
+
+export const deleteShared = (token: string, id: string) => apiFetch<unknown>(`/mail/shared/${encodeURIComponent(id)}`, token, json('DELETE'))
+
+export const deleteSharedMany = (token: string, ids: string[]) => apiFetch<unknown>('/mail/shared/delete', token, json('POST', { ids }))
+
+export async function downloadSharedAttachment(token: string, id: string, attachment: MailAttachment) {
+  const link = document.createElement('a')
+  link.download = attachment.name
+  link.href = URL.createObjectURL(await apiFetchBlob(`/mail/shared/${encodeURIComponent(id)}/attachments/${attachment.n}`, token))
+  link.click()
+  setTimeout(() => URL.revokeObjectURL(link.href), 60_000)
+}

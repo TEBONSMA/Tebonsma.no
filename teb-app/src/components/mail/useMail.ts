@@ -4,22 +4,28 @@ import { errorMessage } from '../../lib/feed'
 import {
   getFolders,
   getMembers,
+  getShared,
   getConversation,
   getMessage,
   listMessages,
   type Folder,
   type Label,
   type Member,
+  type SharedCount,
+  type SharedMail,
   type MailFilter,
   type MailMessage,
   type MailSort,
   type MailSummary,
 } from '../../lib/mail'
 
+const NO_SHARED: SharedCount = { total: 0, unseen: 0 }
+
 interface LoadedFolders {
   key: string
   folders: Folder[]
   labels: Label[]
+  shared: SharedCount
   error: string | null
 }
 
@@ -37,8 +43,8 @@ export function useFolders() {
     if (isLoading || !token) return
     let active = true
     getFolders(token)
-      .then(({ folders, labels }) => active && setLoaded({ key, folders, labels, error: null }))
-      .catch(err => active && setLoaded({ key, folders: [], labels: [], error: errorMessage(err) }))
+      .then(({ folders, labels, shared }) => active && setLoaded({ key, folders, labels, shared, error: null }))
+      .catch(err => active && setLoaded({ key, folders: [], labels: [], shared: NO_SHARED, error: errorMessage(err) }))
     return () => {
       active = false
     }
@@ -47,6 +53,7 @@ export function useFolders() {
   return {
     folders: current?.folders ?? null,
     labels: current?.labels ?? [],
+    shared: current?.shared ?? NO_SHARED,
     error: current?.error ?? null,
     refresh: () => setAttempt(n => n + 1),
   }
@@ -225,4 +232,38 @@ export function useMembers(enabled: boolean) {
   }, [enabled, token, fetched])
 
   return members
+}
+
+interface LoadedShared {
+  key: string
+  mail: SharedMail | null
+  error: string | null
+}
+
+// A shared mail, read in full. Opening it reads it, which the caller is told about.
+export function useShared(id: string | undefined, onOpened: () => void) {
+  const { user, isLoading } = useAuth()
+  const token = user?.access_token ?? null
+  const [loaded, setLoaded] = useState<LoadedShared | null>(null)
+  const key = `${id}`
+  const current = loaded?.key === key ? loaded : null
+
+  useEffect(() => {
+    if (isLoading || !token || !id) return
+    let active = true
+    getShared(token, id)
+      .then(mail => {
+        if (!active) return
+        setLoaded({ key, mail, error: null })
+        onOpened()
+      })
+      .catch(err => active && setLoaded({ key, mail: null, error: errorMessage(err) }))
+    return () => {
+      active = false
+    }
+    // onOpened only tells the folders and the list; a new function each render isn't a reason to read the mail again
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoading, token, id, key])
+
+  return { mail: current?.mail ?? null, error: current?.error ?? null, loading: !!id && !current }
 }

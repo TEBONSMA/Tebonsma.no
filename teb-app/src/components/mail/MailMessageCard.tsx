@@ -1,9 +1,9 @@
 import { useState } from 'react'
-import { Download, ImageOff } from 'lucide-react'
+import { Download, ImageOff, Share2 } from 'lucide-react'
 import { errorMessage, formatDate, formatSize } from '../../lib/feed'
 import { downloadMailAttachment, senderName, type MailAddress, type MailSummary } from '../../lib/mail'
 import { cn } from '../../lib/utils'
-import { BUTTON_GHOST, CARD, ERROR_TEXT } from '../feed/styles'
+import { ACTION, BUTTON_GHOST, CARD, ERROR_TEXT } from '../feed/styles'
 import MailFrame from './MailFrame'
 import { useMessageBody } from './useMail'
 
@@ -14,10 +14,12 @@ interface MailMessageCardProps {
   mail: MailSummary
   // The newest mail and the ones that were unread start out open
   defaultOpen: boolean
+  // Starts sharing this mail
+  onShare: (mail: MailSummary) => void
 }
 
 // One mail in a conversation: its sender and time, and when opened its content and attachments
-const MailMessageCard = ({ token, mail, defaultOpen }: MailMessageCardProps) => {
+const MailMessageCard = ({ token, mail, defaultOpen, onShare }: MailMessageCardProps) => {
   const [open, setOpen] = useState(defaultOpen)
   const [images, setImages] = useState(false)
   const [downloadError, setDownloadError] = useState<string | null>(null)
@@ -45,10 +47,16 @@ const MailMessageCard = ({ token, mail, defaultOpen }: MailMessageCardProps) => 
           {body.error && <p className={ERROR_TEXT}>{body.error}</p>}
           {message && (
             <>
-              <div className="space-y-0.5 text-xs text-white/50">
-                {message.from?.name && <p>Fra: {people([message.from])}</p>}
-                <p>Til: {people(message.to) || '—'}</p>
-                {message.cc.length > 0 && <p>Kopi: {people(message.cc)}</p>}
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0 space-y-0.5 text-xs text-white/50">
+                  {message.from?.name && <p>Fra: {people([message.from])}</p>}
+                  <p>Til: {people(message.to) || '—'}</p>
+                  {message.cc.length > 0 && <p>Kopi: {people(message.cc)}</p>}
+                </div>
+                <button type="button" className={ACTION} onClick={() => onShare(mail)} title="Del denne mailen">
+                  <Share2 size={16} aria-hidden="true" />
+                  <span className="hidden sm:inline">Del</span>
+                </button>
               </div>
 
               {message.blockedImages > 0 && !images && (

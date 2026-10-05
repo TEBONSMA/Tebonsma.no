@@ -23,6 +23,8 @@ interface MailListProps {
   onRetry: () => void
   // A draft is opened for writing instead of for reading
   onOpenDraft: ((mail: MailSummary) => void) | null
+  // Mails that can be ticked and starred. The ones shared by others can't.
+  selectable?: boolean
 }
 
 // Mails the member sent, kept as drafts or has scheduled are listed by who they went to
@@ -43,6 +45,7 @@ const MailList = ({
   onLoadMore,
   onRetry,
   onOpenDraft,
+  selectable = true,
 }: MailListProps) => {
   if (error) {
     return (
@@ -101,22 +104,28 @@ const MailList = ({
                 checked.has(mail.id) && 'bg-teb-orange/10',
               )}
             >
-              <input
-                type="checkbox"
-                checked={checked.has(mail.id)}
-                onChange={() => onToggle(mail.id)}
-                aria-label={`Velg «${mail.subject || 'uten emne'}»`}
-                className="mt-3.5 h-4 w-4 shrink-0 cursor-pointer accent-[var(--color-teb-orange)]"
-              />
-              <button
-                type="button"
-                onClick={() => onToggleStar(mail)}
-                aria-pressed={mail.flagged}
-                aria-label={mail.flagged ? 'Fjern favoritt' : 'Gjør til favoritt'}
-                className="mt-3 shrink-0 cursor-pointer text-white/30 transition-colors hover:text-amber-300"
-              >
-                <Star size={16} aria-hidden="true" className={mail.flagged ? 'fill-amber-300 text-amber-300' : undefined} />
-              </button>
+              {selectable ? (
+                <>
+                  <input
+                    type="checkbox"
+                    checked={checked.has(mail.id)}
+                    onChange={() => onToggle(mail.id)}
+                    aria-label={`Velg «${mail.subject || 'uten emne'}»`}
+                    className="mt-3.5 h-4 w-4 shrink-0 cursor-pointer accent-[var(--color-teb-orange)]"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => onToggleStar(mail)}
+                    aria-pressed={mail.flagged}
+                    aria-label={mail.flagged ? 'Fjern favoritt' : 'Gjør til favoritt'}
+                    className="mt-3 shrink-0 cursor-pointer text-white/30 transition-colors hover:text-amber-300"
+                  >
+                    <Star size={16} aria-hidden="true" className={mail.flagged ? 'fill-amber-300 text-amber-300' : undefined} />
+                  </button>
+                </>
+              ) : (
+                <span className="w-1 shrink-0" />
+              )}
               {onOpenDraft ? (
                 <button type="button" onClick={() => onOpenDraft(mail)} className="block min-w-0 flex-1 cursor-pointer py-2.5 pr-3 text-left">
                   {row}

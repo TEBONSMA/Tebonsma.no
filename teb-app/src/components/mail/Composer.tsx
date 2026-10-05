@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import { Paperclip, Send, Trash2, X } from 'lucide-react'
+import { createPortal } from 'react-dom'
+import { Maximize2, Minimize2, Minus, Paperclip, Trash2, Type, X } from 'lucide-react'
 import { errorMessage, formatSize } from '../../lib/feed'
 import {
   deleteDraft,
@@ -20,11 +21,12 @@ import {
   type Sent,
 } from '../../lib/mail'
 import AttachmentChips from '../feed/AttachmentChips'
-import { BUTTON_GHOST, BUTTON_PRIMARY, CARD, ERROR_TEXT, INPUT } from '../feed/styles'
+import { BUTTON_PRIMARY, ERROR_TEXT } from '../feed/styles'
 import { useAttachments } from '../feed/useAttachments'
+import { cn } from '../../lib/utils'
 import RecipientInput from './RecipientInput'
-import ScheduleMenu from './ScheduleMenu'
 import RichEditor from './RichEditor'
+import ScheduleMenu from './ScheduleMenu'
 
 const AUTOSAVE_MS = 1500
 
@@ -53,7 +55,12 @@ const Composer = ({ token, seed, members, onClose, onSent, onScheduled }: Compos
   const [to, setTo] = useState<Person[]>(seed.fields.to)
   const [cc, setCc] = useState<Person[]>(seed.fields.cc)
   const [bcc, setBcc] = useState<Person[]>(seed.fields.bcc)
-  const [showCc, setShowCc] = useState(seed.fields.cc.length > 0 || seed.fields.bcc.length > 0)
+  // Kopi and Blindkopi get their own rows when asked for, or when the mail already has some
+  const [showCc, setShowCc] = useState(seed.fields.cc.length > 0)
+  const [showBcc, setShowBcc] = useState(seed.fields.bcc.length > 0)
+  // A small window in the corner that the mail page stays usable behind, which can be rolled up to its title or opened wide
+  const [view, setView] = useState<'normal' | 'minimized' | 'expanded'>('normal')
+  const [showFormatting, setShowFormatting] = useState(false)
   const [subject, setSubject] = useState(seed.fields.subject)
   const [html, setHtml] = useState(seed.fields.html)
   // The draft keeps the mail between saves, under an id made here
@@ -187,83 +194,147 @@ const Composer = ({ token, seed, members, onClose, onSent, onScheduled }: Compos
     }
   }
 
-  return (
-    <div className="fixed inset-0 z-[55] flex items-end justify-center bg-black/60 p-0 sm:items-center sm:p-4" role="dialog" aria-modal="true" aria-label="Ny mail">
-      <div className={`${CARD} flex max-h-full w-full max-w-3xl flex-col overflow-hidden bg-neutral-950`}>
-        <div className="flex items-center justify-between gap-2 border-b border-white/10 px-4 py-2.5">
-          <h2 className="text-sm font-semibold text-white">{subject.trim() || 'Ny mail'}</h2>
-          <div className="flex items-center gap-3">
-            <span className="text-xs text-white/40" aria-live="polite">
+  const minimized = view === 'minimized'
+  const expanded = view === 'expanded'
+  const iconButton = 'cursor-pointer rounded p-1.5 text-white/70 transition-colors hover:bg-white/10 hover:text-white'
+
+  // Drawn on the page itself rather than inside the mail page, so nothing on the page covers it
+  return createPortal(
+    <>
+      {expanded && <div className="fixed inset-0 z-[99] bg-black/60 backdrop-blur-sm" aria-hidden="true" />}
+      <div
+        role="dialog"
+        aria-label="Ny mail"
+        className={cn(
+          'fixed z-[100] flex flex-col overflow-hidden border border-white/10 bg-neutral-950 shadow-[0_8px_48px_rgba(0,0,0,0.6)]',
+          // On a phone it takes the whole screen, on larger screens it sits in the corner like Gmail's
+          expanded
+            ? 'inset-0 sm:inset-auto sm:left-1/2 sm:top-1/2 sm:h-[min(48rem,calc(100dvh-4rem))] sm:w-[min(60rem,calc(100vw-4rem))] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-lg'
+            : minimized
+              ? 'bottom-0 right-0 w-full sm:right-6 sm:w-80 sm:rounded-t-lg'
+              : 'inset-0 sm:inset-auto sm:bottom-0 sm:right-6 sm:h-[min(36rem,calc(100dvh-3rem))] sm:w-[34rem] sm:rounded-t-lg',
+        )}
+      >
+        <div className="flex shrink-0 items-center justify-between gap-2 bg-neutral-800 px-4 py-2">
+          <button
+            type="button"
+            onClick={() => setView(minimized ? 'normal' : 'minimized')}
+            className="min-w-0 flex-1 cursor-pointer truncate text-left text-sm font-semibold text-white"
+            aria-label={minimized ? 'Åpne mailen' : 'Rull sammen'}
+          >
+            {subject.trim() || 'Ny mail'}
+          </button>
+          <div className="flex shrink-0 items-center gap-0.5">
+            <span className="mr-2 hidden text-xs text-white/40 sm:inline" aria-live="polite">
               {STATUS[saveState]}
             </span>
-            <button type="button" onClick={close} aria-label="Lagre og lukk" title="Lagre og lukk" className="cursor-pointer rounded p-1 text-white/60 hover:bg-white/10 hover:text-white">
-              <X size={18} aria-hidden="true" />
+            <button type="button" onClick={() => setView(minimized ? 'normal' : 'minimized')} aria-label={minimized ? 'Åpne' : 'Rull sammen'} title={minimized ? 'Åpne' : 'Rull sammen'} className={iconButton}>
+              <Minus size={16} aria-hidden="true" />
+            </button>
+            <button type="button" onClick={() => setView(expanded ? 'normal' : 'expanded')} aria-label={expanded ? 'Gjør mindre' : 'Utvid'} title={expanded ? 'Gjør mindre' : 'Utvid'} className={`${iconButton} hidden sm:block`}>
+              {expanded ? <Minimize2 size={16} aria-hidden="true" /> : <Maximize2 size={16} aria-hidden="true" />}
+            </button>
+            <button type="button" onClick={close} aria-label="Lagre og lukk" title="Lagre og lukk" className={iconButton}>
+              <X size={16} aria-hidden="true" />
             </button>
           </div>
         </div>
 
-        <div className="min-h-0 flex-1 space-y-2 overflow-y-auto p-4">
-          <RecipientInput label="Til" people={to} onChange={setTo} members={members} />
-          {showCc ? (
-            <>
-              <RecipientInput label="Kopi" people={cc} onChange={setCc} members={members} />
-              <RecipientInput label="Blindkopi" people={bcc} onChange={setBcc} members={members} />
-            </>
-          ) : (
-            <button type="button" onClick={() => setShowCc(true)} className="ml-[5.5rem] cursor-pointer text-xs text-white/50 hover:text-white">
-              Kopi og blindkopi
-            </button>
-          )}
-          <div className="flex items-center gap-2">
-            <label htmlFor="mail-subject" className="w-20 shrink-0 text-sm text-white/50">
+        {/* Kept in place while rolled up, so nothing written is lost */}
+        <div className={cn('flex min-h-0 flex-1 flex-col', minimized && 'hidden')}>
+          <RecipientInput
+            bare
+            label="Til"
+            people={to}
+            onChange={setTo}
+            members={members}
+            trailing={
+              <span className="flex gap-2">
+                {!showCc && (
+                  <button type="button" onClick={() => setShowCc(true)} className="cursor-pointer hover:text-white">
+                    Kopi
+                  </button>
+                )}
+                {!showBcc && (
+                  <button type="button" onClick={() => setShowBcc(true)} className="cursor-pointer hover:text-white">
+                    Blindkopi
+                  </button>
+                )}
+              </span>
+            }
+          />
+          {showCc && <RecipientInput bare label="Kopi" people={cc} onChange={setCc} members={members} />}
+          {showBcc && <RecipientInput bare label="Blindkopi" people={bcc} onChange={setBcc} members={members} />}
+          <div className="flex shrink-0 items-center gap-2 border-b border-white/10 px-4">
+            <label htmlFor="mail-subject" className="sr-only">
               Emne
             </label>
-            <input id="mail-subject" className={INPUT} value={subject} onChange={e => setSubject(e.target.value)} maxLength={250} />
-          </div>
-
-          <RichEditor initialHtml={html} onChange={setHtml} />
-
-          <AttachmentChips attachments={files.attachments} uploading={files.uploading} token={token} onRemove={files.remove} />
-          {files.error && <p className={ERROR_TEXT}>{files.error}</p>}
-          {files.attachments.length > 0 && (
-            <p className="text-xs text-white/40">
-              {files.attachments.length} vedlegg · {formatSize(totalSize)} av {formatSize(MAX_MAIL_ATTACHMENT_BYTES)}
-            </p>
-          )}
-        </div>
-
-        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-white/10 px-4 py-3">
-          <div className="flex items-center gap-2">
-            <button type="button" className={BUTTON_PRIMARY} onClick={send} disabled={sending}>
-              <Send size={16} aria-hidden="true" />
-              {sending ? 'Sender…' : 'Send'}
-            </button>
-            {offline?.available && <ScheduleMenu status={offline} disabled={sending} onSchedule={schedule} onConsent={consent} />}
             <input
-              ref={fileRef}
-              type="file"
-              multiple
-              hidden
-              onChange={e => {
-                files.upload(e.target.files)
-                e.target.value = ''
-              }}
+              id="mail-subject"
+              className="w-full bg-transparent py-2.5 text-sm text-white placeholder-white/40 outline-none"
+              placeholder="Emne"
+              value={subject}
+              onChange={e => setSubject(e.target.value)}
+              maxLength={250}
             />
-            <button type="button" className={BUTTON_GHOST} onClick={() => fileRef.current?.click()}>
-              <Paperclip size={16} aria-hidden="true" />
-              Legg ved
-            </button>
           </div>
-          <div className="flex items-center gap-2">
-            {error && <span className={ERROR_TEXT}>{error}</span>}
-            <button type="button" className={BUTTON_GHOST} onClick={discard} disabled={sending}>
-              <Trash2 size={16} aria-hidden="true" />
-              Forkast
+
+          <RichEditor bare showToolbar={showFormatting} initialHtml={html} onChange={setHtml} />
+
+          {(files.attachments.length > 0 || files.uploading > 0 || files.error) && (
+            <div className="shrink-0 space-y-1 border-t border-white/10 px-4 py-2">
+              <AttachmentChips attachments={files.attachments} uploading={files.uploading} token={token} onRemove={files.remove} />
+              {files.error && <p className={ERROR_TEXT}>{files.error}</p>}
+              {files.attachments.length > 0 && (
+                <p className="text-xs text-white/40">
+                  {files.attachments.length} vedlegg · {formatSize(totalSize)} av {formatSize(MAX_MAIL_ATTACHMENT_BYTES)}
+                </p>
+              )}
+            </div>
+          )}
+
+          {error && <p className={`${ERROR_TEXT} shrink-0 px-4 pb-1`}>{error}</p>}
+
+          <div className="flex shrink-0 items-center justify-between gap-2 px-3 py-2.5">
+            <div className="flex items-center gap-1">
+              <div className="relative mr-2 flex">
+                <button type="button" className={cn(BUTTON_PRIMARY, offline?.available && 'rounded-r-none')} onClick={send} disabled={sending}>
+                  {sending ? 'Sender…' : 'Send'}
+                </button>
+                {offline?.available && <ScheduleMenu split status={offline} disabled={sending} onSchedule={schedule} onConsent={consent} />}
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowFormatting(v => !v)}
+                aria-pressed={showFormatting}
+                aria-label="Formatering"
+                title="Formatering"
+                className={cn(iconButton, showFormatting && 'bg-white/10 text-white')}
+              >
+                <Type size={18} aria-hidden="true" />
+              </button>
+              <input
+                ref={fileRef}
+                type="file"
+                multiple
+                hidden
+                onChange={e => {
+                  files.upload(e.target.files)
+                  e.target.value = ''
+                }}
+              />
+              <button type="button" onClick={() => fileRef.current?.click()} aria-label="Legg ved filer" title="Legg ved filer" className={iconButton}>
+                <Paperclip size={18} aria-hidden="true" />
+              </button>
+            </div>
+            <button type="button" onClick={discard} disabled={sending} aria-label="Forkast kladden" title="Forkast kladden" className={`${iconButton} disabled:opacity-50`}>
+              <Trash2 size={18} aria-hidden="true" />
             </button>
           </div>
         </div>
       </div>
-    </div>
+    </>,
+    document.body,
   )
 }
 

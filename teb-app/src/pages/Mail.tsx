@@ -9,15 +9,18 @@ import MailList from '../components/mail/MailList'
 import MailSidebar from '../components/mail/MailSidebar'
 import MailToolbar from '../components/mail/MailToolbar'
 import MailView from '../components/mail/MailView'
+import SharedView from '../components/mail/SharedView'
+import ShareDialog from '../components/mail/ShareDialog'
 import UndoToast from '../components/mail/UndoToast'
 import { useNotifications } from '../components/feed/NotificationsContext'
-import { useConversation, useFolders, useMailList, useMembers } from '../components/mail/useMail'
+import { useConversation, useFolders, useMailList, useMembers, useShared } from '../components/mail/useMail'
 import { useAuth } from '../auth/AuthContext'
 import { errorMessage } from '../lib/feed'
 import {
   cancelScheduled,
   cancelSend,
   changeLabels,
+  deleteSharedMany,
   deleteForever,
   EMPTY_FIELDS,
   emptyTrash,
@@ -79,9 +82,11 @@ export default function Mail() {
   const [note, setNote] = useState<Note | null>(null)
   const [undoing, setUndoing] = useState(false)
   const [undoError, setUndoError] = useState<string | null>(null)
-  const members = useMembers(composer !== null)
+  // The mail being shared, with a member or to the feed
+  const [sharing, setSharing] = useState<MailSummary | null>(null)
+  const members = useMembers(composer !== null || sharing !== null)
 
-  const { folders, labels, error: folderError, refresh: refreshFolders } = useFolders()
+  const { folders, labels, shared, error: folderError, refresh: refreshFolders } = useFolders()
   const { refresh: refreshNotifications } = useNotifications()
   // What changes the folders' counts changes the number next to Mail in the menu and the bell too
   const refresh = () => {
@@ -92,12 +97,19 @@ export default function Mail() {
   const checked = new Set(chosen.scope === scope ? chosen.ids : [])
 
   // Opening a conversation reads it, so the list and the counts follow when anything was unread
-  const opened = useConversation(id, messages => {
+  // Mails other members shared are kept by the site, so they are read another way
+  const isShared = folder === 'shared'
+  const opened = useConversation(isShared ? undefined : id, messages => {
     const ids = messages.map(mail => mail.id)
     if (messages.some(mail => !mail.seen)) {
       list.change(ids, () => ({ seen: true, unreadCount: 0 }))
       refresh()
     }
+  })
+
+  const openedShared = useShared(isShared ? id : undefined, () => {
+    list.change([id!], () => ({ seen: true, unreadCount: 0 }))
+    refresh()
   })
 
   useEffect(() => {
@@ -142,7 +154,7 @@ export default function Mail() {
     list.remove(ids)
     setChosen({ scope, ids: [] })
     refresh()
-    if (opened.messages?.some(mail => ids.includes(mail.id))) navigate(`/mail/${encodeURIComponent(folder)}${search}`, { replace: true })
+    if (opened.messages?.some(mail => ids.includes(mail.id)) || (isShared && id && ids.includes(id))) navigate(`/mail/${encodeURIComponent(folder)}${search}`, { replace: true })
   }
 
   const handlersFor = (mails: MailSummary[]): MailActionHandlers => {
@@ -303,6 +315,7 @@ export default function Mail() {
             token={token}
             folders={folders}
             labels={labels}
+            shared={shared}
             active={folder}
             activeLabel={filter.label}
             onChanged={refresh}
@@ -324,6 +337,7 @@ export default function Mail() {
             allChecked={loaded.length > 0 && selection.length === loaded.length}
             someChecked={selection.length > 0}
             onToggleAll={toggleAll}
+            selectable={!isShared}
             actions={
               <MailActions
                 token={token}
@@ -374,6 +388,7 @@ export default function Mail() {
               loadingMore={list.loadingMore}
               onLoadMore={list.loadMore}
               onRetry={list.retry}
+              selectable={!isShared}
               onOpenDraft={folder === 'drafts' ? mail => void startFrom(mail.id, 'draft') : null}
             />
           </div>
@@ -390,7 +405,30 @@ export default function Mail() {
               </Link>
             </div>
           )}
-          {opened.messages && opened.messages.length > 0 && (
+          {isShared && id && openedShared.loading && <p className="p-4 text-sm text-white/50">Laster mail…</p>}
+          {isShared && id && openedShared.error && (
+            <div className="space-y-3 p-4">
+              <p className={ERROR_TEXT}>{openedShared.error}</p>
+              <Link to={`/mail/shared${search}`} className={BUTTON_GHOST}>
+                Tilbake til mappen
+              </Link>
+            </div>
+          )}
+          {openedShared.mail && id && (
+            <SharedView
+              token={token}
+              mail={openedShared.mail}
+              search={search}
+              busy={busy}
+              onDelete={() =>
+                run(
+                  () => deleteSharedMany(token, [id]),
+                  () => gone([id]),
+                )
+              }
+            />
+          )}
+          {!isShared && opened.messages && opened.messages.length > 0 && (
             <MailView
               token={token}
               messages={opened.messages}
@@ -402,6 +440,7 @@ export default function Mail() {
               {...handlersFor([conversationSummary(actedOn)])}
               actedOn={actedOn}
               onCompose={mode => void startFrom(opened.messages![opened.messages!.length - 1].id, mode)}
+              onShare={setSharing}
               scheduled={
                 folder === 'scheduled' && id
                   ? {
@@ -448,6 +487,19 @@ export default function Mail() {
             onScheduled={afterSchedule}
           />
         </Suspense>
+      )}
+      {sharing && (
+        <ShareDialog
+          token={token}
+          mail={sharing}
+          members={members}
+          onClose={() => setSharing(null)}
+          onShared={message => {
+            setSharing(null)
+            setUndoError(null)
+            setNote({ key: Date.now(), message, undo: null })
+          }}
+        />
       )}
       {note && (
         <UndoToast

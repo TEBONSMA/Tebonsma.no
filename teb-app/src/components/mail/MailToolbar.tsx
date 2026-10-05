@@ -18,6 +18,8 @@ interface MailToolbarProps {
   onToggleAll: () => void
   // What can be done with the chosen mails, shown instead of the filters
   actions: ReactNode
+  // Without the tick box for everything and the filters that only apply to a mailbox
+  selectable?: boolean
 }
 
 const FILTERS = [
@@ -38,6 +40,7 @@ const MailToolbar = ({
   someChecked,
   onToggleAll,
   actions,
+  selectable = true,
 }: MailToolbarProps) => {
   const submit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -47,7 +50,7 @@ const MailToolbar = ({
   return (
     <div className="space-y-2 border-b border-white/10 px-3 py-2">
       <div className="flex items-center gap-2">
-        <input
+        {selectable && <input
           type="checkbox"
           checked={allChecked}
           ref={el => {
@@ -56,7 +59,7 @@ const MailToolbar = ({
           onChange={onToggleAll}
           aria-label="Velg alle"
           className="h-4 w-4 shrink-0 cursor-pointer accent-[var(--color-teb-orange)]"
-        />
+        />}
         {someChecked ? (
           <div className="min-w-0 flex-1">{actions}</div>
         ) : (
@@ -85,7 +88,7 @@ const MailToolbar = ({
           )}
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex flex-wrap gap-1">
-              {FILTERS.map(({ key, label }) => (
+              {FILTERS.filter(({ key }) => selectable || key === 'unread').map(({ key, label }) => (
                 <button
                   key={key}
                   type="button"
