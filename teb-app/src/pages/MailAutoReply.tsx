@@ -3,10 +3,21 @@ import { Link } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
 import Badge from '../components/Badge'
 import Layout from '../components/Layout'
-import { BUTTON_PRIMARY, CARD, ERROR_TEXT, INPUT } from '../components/feed/styles'
+import { BUTTON_DANGER, BUTTON_GHOST, BUTTON_PRIMARY, CARD, ERROR_TEXT, INPUT } from '../components/feed/styles'
 import { useAuth } from '../auth/AuthContext'
 import { errorMessage } from '../lib/feed'
-import { getAutoReply, getMailSettings, saveAutoReply, saveMailSettings, type AutoReply, type MailSettings } from '../lib/mail'
+import {
+  getAutoReply,
+  getMailSettings,
+  getOfflineStatus,
+  revokeOffline,
+  saveAutoReply,
+  saveMailSettings,
+  startOffline,
+  type AutoReply,
+  type MailSettings,
+  type OfflineStatus,
+} from '../lib/mail'
 
 // The editor is large and only needed for the signature
 const RichEditor = lazy(() => import('../components/mail/RichEditor'))
@@ -52,6 +63,8 @@ export default function MailAutoReply() {
 
   const [reply, setReply] = useState<AutoReply | null>(null)
   const [settings, setSettings] = useState<MailSettings | null>(null)
+  const [offline, setOffline] = useState<OfflineStatus | null>(null)
+  const [offlineError, setOfflineError] = useState<string | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [replyStatus, setReplyStatus] = useState<Status>(null)
   const [settingsStatus, setSettingsStatus] = useState<Status>(null)
@@ -64,11 +77,12 @@ export default function MailAutoReply() {
   useEffect(() => {
     if (!token) return
     let active = true
-    Promise.all([getAutoReply(token), getMailSettings(token)])
-      .then(([loadedReply, loadedSettings]) => {
+    Promise.all([getAutoReply(token), getMailSettings(token), getOfflineStatus(token)])
+      .then(([loadedReply, loadedSettings, status]) => {
         if (!active) return
         setReply(loadedReply)
         setSettings(loadedSettings)
+        setOffline(status)
       })
       .catch(err => active && setLoadError(errorMessage(err)))
     return () => {
@@ -88,6 +102,17 @@ export default function MailAutoReply() {
       setReplyStatus({ kind: 'error', text: errorMessage(err) })
     } finally {
       setSaving(null)
+    }
+  }
+
+  const changePermission = async () => {
+    if (!token || !offline) return
+    setOfflineError(null)
+    try {
+      if (offline.enabled) setOffline(await revokeOffline(token))
+      else window.location.href = (await startOffline(token)).url
+    } catch (err) {
+      setOfflineError(errorMessage(err))
     }
   }
 
@@ -209,6 +234,22 @@ export default function MailAutoReply() {
             </div>
           </Section>
         </form>
+      )}
+
+      {offline?.available && (
+        <Section
+          title="Send senere"
+          description="For at en planlagt mail skal gå til riktig tid også når du er logget ut, lagrer tebonsma.no et innlogging for deg, kryptert. Uten tillatelsen lagres ingenting, og du kan trekke den tilbake når som helst."
+        >
+          <p className="text-sm text-white/80">{offline.enabled ? 'Du har gitt tillatelse.' : 'Du har ikke gitt tillatelse.'}</p>
+          <div className="flex flex-wrap items-center gap-3">
+            <button type="button" className={offline.enabled ? BUTTON_DANGER : BUTTON_GHOST} onClick={changePermission}>
+              {offline.enabled ? 'Trekk tillatelsen' : 'Gi tillatelse'}
+            </button>
+            {offlineError && <p className={ERROR_TEXT}>{offlineError}</p>}
+          </div>
+          {offline.enabled && <p className="text-xs text-white/40">Mail som venter på å bli sendt når du trekker tillatelsen, havner i Kladder.</p>}
+        </Section>
       )}
     </Layout>
   )

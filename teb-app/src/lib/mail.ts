@@ -23,6 +23,7 @@ export interface Folder {
 export interface MailSummary {
   // For a conversation, the id of its newest mail
   id: string
+  messageId: string | null
   // The mails the row stands for: just this one, or the whole conversation. Changes apply to all of them.
   ids: string[]
   count: number
@@ -36,6 +37,9 @@ export interface MailSummary {
   date: string
   seen: boolean
   flagged: boolean
+  // Answered or forwarded from here, as the mail server remembers it
+  answered: boolean
+  forwarded: boolean
   hasAttachments: boolean
   labels: string[]
   size: number
@@ -370,3 +374,38 @@ export const getAutoReply = (token: string) => apiFetch<AutoReply>('/mail/auto-r
 
 export const saveAutoReply = (token: string, settings: AutoReply) =>
   apiFetch<AutoReply>('/mail/auto-reply', token, json('PUT', settings))
+
+// --- Sending later ---
+
+export interface OfflineStatus {
+  // Switched on at the server at all
+  available: boolean
+  // This member has said yes
+  enabled: boolean
+}
+
+export const getOfflineStatus = (token: string) => apiFetch<OfflineStatus>('/mail/offline', token)
+
+// The address at the login provider where the member says yes
+export const startOffline = (token: string) => apiFetch<{ url: string }>('/mail/offline/start', token, json('POST'))
+
+export const finishOffline = (token: string, code: string, state: string) =>
+  apiFetch<OfflineStatus>('/mail/offline/callback', token, json('POST', { code, state }))
+
+export const revokeOffline = (token: string) => apiFetch<OfflineStatus>('/mail/offline', token, json('DELETE'))
+
+export interface Scheduled {
+  scheduledId: string
+  sendAt: string
+}
+
+export const scheduleMail = (token: string, fields: ComposeFields, attachments: Attachment[], sendAt: string) =>
+  apiFetch<Scheduled>('/mail/send', token, json('POST', { ...payloadOf(fields, attachments), draftId: fields.draftId, sendAt }))
+
+// :id is the mail's id in the Planlagt folder
+export const rescheduleMail = (token: string, id: string, sendAt: string) =>
+  apiFetch<unknown>(`/mail/scheduled/${encodeURIComponent(id)}`, token, json('PATCH', { sendAt }))
+
+// The mail goes back to Kladder; the id of the draft is returned
+export const cancelScheduled = (token: string, id: string) =>
+  apiFetch<{ draftId: string }>(`/mail/scheduled/${encodeURIComponent(id)}`, token, json('DELETE'))

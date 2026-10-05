@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { Paperclip, Star } from 'lucide-react'
+import { Forward, Paperclip, Reply, Star } from 'lucide-react'
 import { listDate, senderName, type Label, type MailSummary } from '../../lib/mail'
 import { cn } from '../../lib/utils'
 import { BUTTON_GHOST, ERROR_TEXT } from '../feed/styles'
@@ -80,8 +80,10 @@ const MailList = ({
                     </span>
                   )}
                 </span>
+                {mail.answered && <Reply size={14} aria-label="Besvart" className="shrink-0 text-white/40" />}
+                {mail.forwarded && <Forward size={14} aria-label="Videresendt" className="shrink-0 text-white/40" />}
                 {mail.hasAttachments && <Paperclip size={14} aria-label="Har vedlegg" className="shrink-0 text-white/50" />}
-                <span className="shrink-0 text-xs text-white/40">{listDate(mail.date)}</span>
+                <span className="shrink-0 text-xs text-white/40">{mail.folder === 'scheduled' ? `Sendes ${listDate(mail.date)}` : listDate(mail.date)}</span>
               </span>
               <span className={cn('block truncate text-sm', mail.seen ? 'text-white/60' : 'font-medium text-white/90')}>
                 {mail.subject || '(uten emne)'}

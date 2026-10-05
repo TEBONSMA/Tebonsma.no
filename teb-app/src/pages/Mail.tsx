@@ -10,10 +10,12 @@ import MailSidebar from '../components/mail/MailSidebar'
 import MailToolbar from '../components/mail/MailToolbar'
 import MailView from '../components/mail/MailView'
 import UndoToast from '../components/mail/UndoToast'
+import { useNotifications } from '../components/feed/NotificationsContext'
 import { useConversation, useFolders, useMailList, useMembers } from '../components/mail/useMail'
 import { useAuth } from '../auth/AuthContext'
 import { errorMessage } from '../lib/feed'
 import {
+  cancelScheduled,
   cancelSend,
   changeLabels,
   deleteForever,
@@ -24,6 +26,7 @@ import {
   conversationSummary,
   isVirtualFolder,
   moveMessages,
+  rescheduleMail,
   restoreMessages,
   setFlags,
   snoozeMessages,
@@ -42,6 +45,15 @@ const filterFrom = (params: URLSearchParams): MailFilter => ({
   flagged: params.get('flagged') === '1' || undefined,
   attachment: params.get('attachment') === '1' || undefined,
 })
+
+// What the toast at the bottom says, and what taking sending back would reopen
+interface Note {
+  key: number
+  message: string
+  undo: { outboxId: string; until: string; seed: ComposeSeed } | null
+}
+
+const scheduledAt = new Intl.DateTimeFormat('nb', { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })
 
 // The editor is large and only needed when someone starts writing
 const Composer = lazy(() => import('../components/mail/Composer'))
@@ -64,12 +76,18 @@ export default function Mail() {
 
   // The writing window, and the note that a mail was sent with the chance to take it back
   const [composer, setComposer] = useState<{ seed: ComposeSeed; key: number } | null>(null)
-  const [sentNote, setSentNote] = useState<{ sent: Sent; seed: ComposeSeed; key: number } | null>(null)
+  const [note, setNote] = useState<Note | null>(null)
   const [undoing, setUndoing] = useState(false)
   const [undoError, setUndoError] = useState<string | null>(null)
   const members = useMembers(composer !== null)
 
-  const { folders, labels, error: folderError, refresh } = useFolders()
+  const { folders, labels, error: folderError, refresh: refreshFolders } = useFolders()
+  const { refresh: refreshNotifications } = useNotifications()
+  // What changes the folders' counts changes the number next to Mail in the menu and the bell too
+  const refresh = () => {
+    refreshFolders()
+    refreshNotifications()
+  }
   const list = useMailList(folder, sort, filter)
   const checked = new Set(chosen.scope === scope ? chosen.ids : [])
 
@@ -210,7 +228,11 @@ export default function Mail() {
   const afterSend = (sent: Sent, seed: ComposeSeed) => {
     setComposer(null)
     setUndoError(null)
-    setSentNote({ sent, seed, key: Date.now() })
+    setNote({
+      key: Date.now(),
+      message: 'Mail sendt',
+      undo: sent.outboxId ? { outboxId: sent.outboxId, until: sent.sendAt, seed } : null,
+    })
     // The mail shows up in Sent and the draft leaves Drafts once the waiting time is over
     const wait = Math.max(0, new Date(sent.sendAt).getTime() - Date.now()) + 800
     setTimeout(() => {
@@ -219,13 +241,21 @@ export default function Mail() {
     }, wait)
   }
 
+  const afterSchedule = (sendAt: string) => {
+    setComposer(null)
+    setUndoError(null)
+    setNote({ key: Date.now(), message: `Planlagt til ${scheduledAt.format(new Date(sendAt))}`, undo: null })
+    refresh()
+    if (folder === 'scheduled' || folder === 'drafts') list.retry()
+  }
+
   const undo = async () => {
-    if (!sentNote?.sent.outboxId) return
+    if (!note?.undo) return
     setUndoing(true)
     try {
-      const { draftId } = await cancelSend(token!, sentNote.sent.outboxId)
-      openComposer({ ...sentNote.seed, fields: { ...sentNote.seed.fields, draftId } })
-      setSentNote(null)
+      const { draftId } = await cancelSend(token!, note.undo.outboxId)
+      openComposer({ ...note.undo.seed, fields: { ...note.undo.seed.fields, draftId } })
+      setNote(null)
     } catch (err) {
       setUndoError(errorMessage(err))
     } finally {
@@ -372,6 +402,31 @@ export default function Mail() {
               {...handlersFor([conversationSummary(actedOn)])}
               actedOn={actedOn}
               onCompose={mode => void startFrom(opened.messages![opened.messages!.length - 1].id, mode)}
+              scheduled={
+                folder === 'scheduled' && id
+                  ? {
+                      sendAt: list.messages?.find(mail => mail.id === id)?.date ?? null,
+                      onReschedule: when =>
+                        run(
+                          () => rescheduleMail(token, id, when.toISOString()),
+                          () => list.retry(),
+                        ),
+                      onEdit: () =>
+                        run(
+                          async () => {
+                            const { draftId } = await cancelScheduled(token, id)
+                            return getComposeSeed(token, draftId, 'draft')
+                          },
+                          seed => {
+                            openComposer(seed)
+                            navigate('/mail/scheduled', { replace: true })
+                            list.retry()
+                            refresh()
+                          },
+                        ),
+                    }
+                  : null
+              }
             />
           )}
         </section>
@@ -390,16 +445,17 @@ export default function Mail() {
               if (folder === 'drafts') list.retry()
             }}
             onSent={afterSend}
+            onScheduled={afterSchedule}
           />
         </Suspense>
       )}
-      {sentNote && (
+      {note && (
         <UndoToast
-          key={sentNote.key}
-          message="Mail sendt"
-          until={sentNote.sent.outboxId ? sentNote.sent.sendAt : null}
+          key={note.key}
+          message={note.message}
+          until={note.undo?.until ?? null}
           onUndo={undo}
-          onDone={() => setSentNote(null)}
+          onDone={() => setNote(null)}
           busy={undoing}
           error={undoError}
         />

@@ -88,17 +88,34 @@ export interface Report {
   reports: { reporter: FeedMember; reason: string; createdAt: string }[]
 }
 
-export interface Notification {
+interface NotificationBase {
   id: string
+  excerpt: string
+  createdAt: string
+  read: boolean
+}
+
+export interface FeedNotification extends NotificationBase {
   // The last two go to every member: a new event, and a message from its organizer
   kind: 'comment' | 'reply' | 'event' | 'announcement'
   actor: FeedMember
   postId: string
   commentId: string | null
-  excerpt: string
-  createdAt: string
-  read: boolean
 }
+
+// About a member's mail: a mail that arrived, a mail somebody shared with them, or one that was
+// meant to be sent later and wasn't
+export interface MailNotification extends NotificationBase {
+  kind: 'mail' | 'mail_share' | 'mail_failed'
+  // A member the mail came from, who is shown with their picture. Otherwise sender says who it was.
+  actor: FeedMember | null
+  sender: string
+  postId: null
+  commentId: null
+  mailId: string | null
+}
+
+export type Notification = FeedNotification | MailNotification
 
 export interface PostInput {
   body: string
@@ -196,7 +213,8 @@ export function uploadAttachment(token: string, file: File) {
 }
 
 export const getNotifications = (token: string) =>
-  apiFetch<{ unread: number; items: Notification[] }>('/notifications', token)
+  // mailUnread is the number of unread mails in the inbox, for the menu
+  apiFetch<{ unread: number; mailUnread: number; items: Notification[] }>('/notifications', token)
 
 // Without ids, everything is marked as read
 export const markNotificationsRead = (token: string, ids?: string[]) =>

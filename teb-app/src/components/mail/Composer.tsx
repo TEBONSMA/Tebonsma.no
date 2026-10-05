@@ -3,15 +3,19 @@ import { Paperclip, Send, Trash2, X } from 'lucide-react'
 import { errorMessage, formatSize } from '../../lib/feed'
 import {
   deleteDraft,
+  getOfflineStatus,
   MAX_MAIL_ATTACHMENT_BYTES,
   MAX_MAIL_ATTACHMENTS,
   MAX_RECIPIENTS,
   saveDraft,
+  scheduleMail,
   sendMail,
+  startOffline,
   uploadMailFile,
   type ComposeFields,
   type ComposeSeed,
   type Member,
+  type OfflineStatus,
   type Person,
   type Sent,
 } from '../../lib/mail'
@@ -19,6 +23,7 @@ import AttachmentChips from '../feed/AttachmentChips'
 import { BUTTON_GHOST, BUTTON_PRIMARY, CARD, ERROR_TEXT, INPUT } from '../feed/styles'
 import { useAttachments } from '../feed/useAttachments'
 import RecipientInput from './RecipientInput'
+import ScheduleMenu from './ScheduleMenu'
 import RichEditor from './RichEditor'
 
 const AUTOSAVE_MS = 1500
@@ -31,6 +36,8 @@ interface ComposerProps {
   onClose: () => void
   // The mail was sent, or is waiting out the time it can be taken back in
   onSent: (sent: Sent, seed: ComposeSeed) => void
+  // The mail was put aside to be sent at this time
+  onScheduled: (sendAt: string) => void
 }
 
 const hasText = (html: string) => html.replace(/<[^>]*>/g, '').trim().length > 0
@@ -42,7 +49,7 @@ type SaveState = 'idle' | 'saving' | 'saved' | 'failed'
 
 const STATUS: Record<SaveState, string> = { idle: '', saving: 'Lagrer…', saved: 'Lagret i kladder', failed: 'Kunne ikke lagre' }
 
-const Composer = ({ token, seed, members, onClose, onSent }: ComposerProps) => {
+const Composer = ({ token, seed, members, onClose, onSent, onScheduled }: ComposerProps) => {
   const [to, setTo] = useState<Person[]>(seed.fields.to)
   const [cc, setCc] = useState<Person[]>(seed.fields.cc)
   const [bcc, setBcc] = useState<Person[]>(seed.fields.bcc)
@@ -57,6 +64,18 @@ const Composer = ({ token, seed, members, onClose, onSent }: ComposerProps) => {
   const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
+  // Whether sending later is possible, and whether the member has given the permission it needs
+  const [offline, setOffline] = useState<OfflineStatus | null>(null)
+
+  useEffect(() => {
+    let active = true
+    getOfflineStatus(token)
+      .then(status => active && setOffline(status))
+      .catch(() => {})
+    return () => {
+      active = false
+    }
+  }, [token])
 
   const files = useAttachments(token, MAX_MAIL_ATTACHMENTS, seed.attachments, {
     upload: uploadMailFile,
@@ -113,14 +132,28 @@ const Composer = ({ token, seed, members, onClose, onSent }: ComposerProps) => {
     onClose()
   }
 
-  const send = async () => {
+  // Checks the mail is ready to go, and says what is wrong when it isn't
+  const ready = () => {
     setError(null)
-    if (recipients === 0) return setError('Legg til minst én mottaker')
-    if (recipients > MAX_RECIPIENTS) return setError(`En mail kan ha opptil ${MAX_RECIPIENTS} mottakere`)
-    if (files.uploading > 0) return setError('Vent til filene er lastet opp')
-    if (totalSize > MAX_MAIL_ATTACHMENT_BYTES) return setError(`Vedleggene er til sammen større enn ${formatSize(MAX_MAIL_ATTACHMENT_BYTES)}`)
-    if (!subject.trim() && !hasText(html) && !window.confirm('Mailen har verken emne eller tekst. Sende den likevel?')) return
+    const problem =
+      recipients === 0
+        ? 'Legg til minst én mottaker'
+        : recipients > MAX_RECIPIENTS
+          ? `En mail kan ha opptil ${MAX_RECIPIENTS} mottakere`
+          : files.uploading > 0
+            ? 'Vent til filene er lastet opp'
+            : totalSize > MAX_MAIL_ATTACHMENT_BYTES
+              ? `Vedleggene er til sammen større enn ${formatSize(MAX_MAIL_ATTACHMENT_BYTES)}`
+              : null
+    if (problem) {
+      setError(problem)
+      return false
+    }
+    return subject.trim() !== '' || hasText(html) || window.confirm('Mailen har verken emne eller tekst. Sende den likevel?')
+  }
 
+  const send = async () => {
+    if (!ready()) return
     setSending(true)
     try {
       const sent = await sendMail(token, fields, files.attachments)
@@ -128,6 +161,29 @@ const Composer = ({ token, seed, members, onClose, onSent }: ComposerProps) => {
     } catch (err) {
       setError(errorMessage(err))
       setSending(false)
+    }
+  }
+
+  const schedule = async (when: Date) => {
+    if (!ready()) return
+    setSending(true)
+    try {
+      const scheduled = await scheduleMail(token, fields, files.attachments, when.toISOString())
+      onScheduled(scheduled.sendAt)
+    } catch (err) {
+      setError(errorMessage(err))
+      setSending(false)
+    }
+  }
+
+  // Saying yes happens at the login provider, so the mail is saved first and found again in Drafts
+  const consent = async () => {
+    setError(null)
+    try {
+      await saveDraft(token, draftId, fields, files.attachments)
+      window.location.href = (await startOffline(token)).url
+    } catch (err) {
+      setError(errorMessage(err))
     }
   }
 
@@ -182,6 +238,7 @@ const Composer = ({ token, seed, members, onClose, onSent }: ComposerProps) => {
               <Send size={16} aria-hidden="true" />
               {sending ? 'Sender…' : 'Send'}
             </button>
+            {offline?.available && <ScheduleMenu status={offline} disabled={sending} onSchedule={schedule} onConsent={consent} />}
             <input
               ref={fileRef}
               type="file"
