@@ -19,6 +19,8 @@ export interface Attachment {
 }
 
 export interface Poll {
+  // Set on events, whose text describes the event rather than asking
+  question: string | null
   options: { id: string; text: string; votes: number }[]
   totalVotes: number
   myVote: string | null
@@ -105,6 +107,7 @@ export interface PostInput {
   visibility: Visibility
   attachmentIds: string[]
   pollOptions?: string[]
+  pollQuestion?: string
   event?: EventInput
 }
 
@@ -123,6 +126,7 @@ export const MAX_COMMENT_ATTACHMENTS = 4
 export const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024
 export const MAX_POLL_OPTIONS = 6
 export const MAX_POLL_OPTION_LENGTH = 80
+export const MAX_POLL_QUESTION_LENGTH = 200
 
 type Token = string | null | undefined
 
@@ -167,6 +171,9 @@ export const pinPost = (token: string, id: string, pinned: boolean) =>
 
 export const votePoll = (token: string, id: string, optionId: string | null) =>
   apiFetch<Poll>(`/feed/posts/${id}/vote`, token, json('PUT', { optionId }))
+
+export const addEventPoll = (token: string, id: string, question: string, pollOptions: string[]) =>
+  apiFetch<Poll>(`/events/${id}/poll`, token, json('POST', { question, pollOptions }))
 
 export const reportPost = (token: string, id: string, reason: string) =>
   apiFetch<unknown>(`/feed/posts/${id}/report`, token, json('POST', { reason }))

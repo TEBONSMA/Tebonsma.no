@@ -22,6 +22,7 @@ import {
 import EventHeader from '../events/EventHeader'
 import Attachments from './Attachments'
 import Comments from './Comments'
+import EventPoll from './EventPoll'
 import LikeButton from './LikeButton'
 import PollView from './PollView'
 import PostEditor from './PostEditor'
@@ -61,7 +62,7 @@ const PostCard = ({ post, commentsOpen = false, onChange, onDelete }: PostCardPr
   const menuRef = useRef<HTMLDivElement>(null)
   const [menuOpen, setMenuOpen] = useState(false)
   const [panel, setPanel] = useState<Panel>(null)
-  const [showComments, setShowComments] = useState(commentsOpen)
+  const [showComments, setShowComments] = useState(commentsOpen || !!(post.event && post.poll))
   const [reason, setReason] = useState('')
   const [announcement, setAnnouncement] = useState('')
   const [announced, setAnnounced] = useState(false)
@@ -252,7 +253,7 @@ const PostCard = ({ post, commentsOpen = false, onChange, onDelete }: PostCardPr
             {post.body && (
               <p className="whitespace-pre-wrap break-words text-[15px] leading-relaxed text-white/90">{withLinks(post.body)}</p>
             )}
-            {post.poll && (
+            {post.poll && !post.event && (
               <PollView postId={post.id} poll={post.poll} token={token} onChange={poll => onChange({ ...post, poll })} />
             )}
             {post.attachments.length > 0 && (
@@ -349,6 +350,15 @@ const PostCard = ({ post, commentsOpen = false, onChange, onDelete }: PostCardPr
 
       {showComments && (
         <div className="border-t border-white/10 p-4 md:p-5">
+          {post.event && (
+            <EventPoll
+              postId={post.id}
+              poll={post.poll}
+              token={token}
+              canAdd={post.mine}
+              onChange={poll => onChange({ ...post, poll })}
+            />
+          )}
           <Comments
             postId={post.id}
             visibility={post.visibility}

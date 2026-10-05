@@ -1,18 +1,17 @@
 import { useRef, useState, type ChangeEvent, type FormEvent } from 'react'
-import { CalendarPlus, ChartBar, Globe, ImagePlus, Lock, Paperclip, Plus, X } from 'lucide-react'
+import { CalendarPlus, ChartBar, Globe, ImagePlus, Lock, Paperclip } from 'lucide-react'
 import { fromLocalInput, MAX_EVENT_LOCATION_LENGTH, MAX_EVENT_TITLE_LENGTH, toLocalInput } from '../../lib/events'
 import {
   createPost,
   errorMessage,
   MAX_ATTACHMENTS,
-  MAX_POLL_OPTION_LENGTH,
-  MAX_POLL_OPTIONS,
   MAX_POST_LENGTH,
   updatePost,
   type Post,
   type Visibility,
 } from '../../lib/feed'
 import AttachmentChips from './AttachmentChips'
+import PollFields from './PollFields'
 import { ACTION, BUTTON_GHOST, BUTTON_PRIMARY, ERROR_TEXT, INPUT } from './styles'
 import { useAttachments } from './useAttachments'
 
@@ -75,6 +74,7 @@ const PostEditor = ({ token, post, startAsEvent = false, onSaved, onCancel }: Po
   const [visibility, setVisibility] = useState<Visibility>(post?.visibility ?? 'members')
   const files = useAttachments(token, MAX_ATTACHMENTS, post?.attachments)
   const [pollOptions, setPollOptions] = useState<string[] | null>(null)
+  const [pollQuestion, setPollQuestion] = useState('')
   const [event, setEvent] = useState<EventFields | null>(eventFieldsOf(post) ?? (startAsEvent ? NEW_EVENT : null))
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -89,8 +89,9 @@ const PostEditor = ({ token, post, startAsEvent = false, onSaved, onCancel }: Po
   const text = body.trim()
   // An event needs its title, and both times or neither
   const eventReady = !!event && event.title.trim() !== '' && !event.startsAt === !event.endsAt
+  const pollReady = !pollOptions || (filledOptions.length >= 2 && (!event || pollQuestion.trim() !== ''))
   const contentReady = event
-    ? eventReady
+    ? eventReady && pollReady
     : pollOptions
       ? text !== '' && filledOptions.length >= 2
       : text !== '' || files.attachments.length > 0
@@ -118,10 +119,11 @@ const PostEditor = ({ token, post, startAsEvent = false, onSaved, onCancel }: Po
       if (post) {
         onSaved(await updatePost(token, post.id, input))
       } else {
-        onSaved(await createPost(token, { ...input, ...(pollOptions && { pollOptions: filledOptions }) }))
+        onSaved(await createPost(token, { ...input, ...(pollOptions && { pollOptions: filledOptions, ...(event && { pollQuestion }) }) }))
         setBody('')
         files.clear()
         setPollOptions(null)
+        setPollQuestion('')
         setEvent(startAsEvent ? NEW_EVENT : null)
       }
     } catch (err) {
@@ -130,9 +132,6 @@ const PostEditor = ({ token, post, startAsEvent = false, onSaved, onCancel }: Po
       setSaving(false)
     }
   }
-
-  const setOption = (index: number, value: string) =>
-    setPollOptions(options => options?.map((option, i) => (i === index ? value : option)) ?? null)
 
   const setField = (field: keyof EventFields, value: string) => setEvent(fields => fields && { ...fields, [field]: value })
 
@@ -223,44 +222,13 @@ const PostEditor = ({ token, post, startAsEvent = false, onSaved, onCancel }: Po
       />
 
       {pollOptions && (
-        <fieldset className="space-y-2 rounded-md border border-white/10 p-3">
-          <legend className="px-1 text-xs font-semibold uppercase tracking-wider text-white/50">Spørreundersøkelse</legend>
-          {pollOptions.map((option, index) => (
-            <div key={index} className="flex items-center gap-2">
-              <input
-                className={INPUT}
-                value={option}
-                onChange={e => setOption(index, e.target.value)}
-                maxLength={MAX_POLL_OPTION_LENGTH}
-                placeholder={`Svaralternativ ${index + 1}`}
-                aria-label={`Svaralternativ ${index + 1}`}
-              />
-              {pollOptions.length > 2 && (
-                <button
-                  type="button"
-                  onClick={() => setPollOptions(pollOptions.filter((_, i) => i !== index))}
-                  aria-label={`Fjern svaralternativ ${index + 1}`}
-                  className="rounded p-2 text-white/50 cursor-pointer hover:bg-white/10 hover:text-white"
-                >
-                  <X size={16} aria-hidden="true" />
-                </button>
-              )}
-            </div>
-          ))}
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            {pollOptions.length < MAX_POLL_OPTIONS ? (
-              <button type="button" className={ACTION} onClick={() => setPollOptions([...pollOptions, ''])}>
-                <Plus size={16} aria-hidden="true" />
-                Legg til alternativ
-              </button>
-            ) : (
-              <span />
-            )}
-            <button type="button" className={ACTION} onClick={() => setPollOptions(null)}>
-              Fjern spørreundersøkelsen
-            </button>
-          </div>
-        </fieldset>
+        <PollFields
+          question={event ? pollQuestion : undefined}
+          options={pollOptions}
+          onQuestion={event ? setPollQuestion : undefined}
+          onOptions={setPollOptions}
+          onRemove={() => setPollOptions(null)}
+        />
       )}
 
       {post?.poll && (
@@ -279,12 +247,14 @@ const PostEditor = ({ token, post, startAsEvent = false, onSaved, onCancel }: Po
             <Paperclip size={18} aria-hidden="true" />
             Fil
           </button>
-          {!post && !pollOptions && !event && (
+          {!post && !pollOptions && (
+            <button type="button" className={ACTION} onClick={() => setPollOptions(['', ''])}>
+              <ChartBar size={18} aria-hidden="true" />
+              Spørreundersøkelse
+            </button>
+          )}
+          {!post && !event && (
             <>
-              <button type="button" className={ACTION} onClick={() => setPollOptions(['', ''])}>
-                <ChartBar size={18} aria-hidden="true" />
-                Spørreundersøkelse
-              </button>
               <button type="button" className={ACTION} onClick={() => setEvent(NEW_EVENT)}>
                 <CalendarPlus size={18} aria-hidden="true" />
                 Arrangement
