@@ -15,6 +15,9 @@ const navItems = [
   { label: 'Om oss', href: '/about' },
 ]
 
+// Mail is the member's own mailbox, so it is only in the menu when someone is logged in
+const MAIL_ITEM = { label: 'Mail', href: '/mail' }
+
 const isActive = (pathname: string, href: string) =>
   href === '/' ? pathname === '/' : pathname.startsWith(href)
 
@@ -22,6 +25,7 @@ const Header = () => {
   const location = useLocation()
   const { user } = useAuth()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const items = user ? [...navItems.slice(0, 3), MAIL_ITEM, ...navItems.slice(3)] : navItems
 
   return (
     <header className="sticky top-0 z-50 border-b border-white/10 bg-neutral-950/80 backdrop-blur-md">
@@ -34,7 +38,7 @@ const Header = () => {
         </Link>
 
         <nav aria-label="Primary" className="hidden md:flex col-start-2 items-center gap-5 lg:gap-6 xl:gap-8">
-          {navItems.map((item) => {
+          {items.map((item) => {
             const active = isActive(location.pathname, item.href)
             return (
               <Link
@@ -83,7 +87,7 @@ const Header = () => {
 
       {isMenuOpen && (
         <nav aria-label="Mobil" className="md:hidden border-t border-white/10 bg-neutral-950 px-6 py-4 flex flex-col gap-1">
-          {navItems.map((item) => {
+          {items.map((item) => {
             const active = isActive(location.pathname, item.href)
             return (
               <Link

@@ -11,6 +11,7 @@ import Konto from './pages/Konto'
 import Feed from './pages/Feed'
 import FeedPost from './pages/FeedPost'
 import Kalender from './pages/Kalender'
+import Mail from './pages/Mail'
 import './App.css'
 
 function App() {
@@ -31,6 +32,9 @@ function App() {
             <Route path="/feed" element={<Feed />} />
             <Route path="/feed/:id" element={<FeedPost />} />
             <Route path="/kalender" element={<Kalender />} />
+            <Route path="/mail" element={<Mail />} />
+            <Route path="/mail/:folder" element={<Mail />} />
+            <Route path="/mail/:folder/:id" element={<Mail />} />
           </Routes>
         </ProfileProvider>
       </AuthProvider>
