@@ -19,7 +19,7 @@ export interface Attachment {
 }
 
 export interface Poll {
-  // Set on events, whose text describes the event rather than asking
+  // Set on events, whose text describes the event instead of asking the question
   question: string | null
   options: { id: string; text: string; votes: number }[]
   totalVotes: number

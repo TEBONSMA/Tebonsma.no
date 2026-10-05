@@ -14,7 +14,7 @@ interface EventPollProps {
   onChange: (poll: Poll) => void
 }
 
-// The poll of an event sits on top of its comments, where the questions about the event are discussed
+// The poll of an event sits under its description, and asks a question of its own
 const EventPoll = ({ postId, poll, token, canAdd, onChange }: EventPollProps) => {
   const [adding, setAdding] = useState(false)
   const [question, setQuestion] = useState('')
@@ -24,7 +24,7 @@ const EventPoll = ({ postId, poll, token, canAdd, onChange }: EventPollProps) =>
 
   if (poll) {
     return (
-      <div className="mb-5 space-y-2 rounded-md border border-white/10 p-3">
+      <div className="space-y-2 rounded-md border border-white/10 p-3">
         {poll.question && <p className="text-sm font-semibold text-white">{poll.question}</p>}
         <PollView postId={postId} poll={poll} token={token} onChange={onChange} />
       </div>
@@ -34,7 +34,7 @@ const EventPoll = ({ postId, poll, token, canAdd, onChange }: EventPollProps) =>
 
   if (!adding) {
     return (
-      <button type="button" className={`${ACTION} mb-4`} onClick={() => setAdding(true)}>
+      <button type="button" className={ACTION} onClick={() => setAdding(true)}>
         <ChartBar size={18} aria-hidden="true" />
         Legg til spørreundersøkelse
       </button>
@@ -55,7 +55,7 @@ const EventPoll = ({ postId, poll, token, canAdd, onChange }: EventPollProps) =>
   }
 
   return (
-    <form onSubmit={submit} className="mb-5 space-y-2">
+    <form onSubmit={submit} className="space-y-2">
       <PollFields question={question} options={options} onQuestion={setQuestion} onOptions={setOptions} onRemove={() => setAdding(false)} />
       <div className="flex justify-end gap-2">
         <button type="button" className={BUTTON_GHOST} disabled={busy} onClick={() => setAdding(false)}>
