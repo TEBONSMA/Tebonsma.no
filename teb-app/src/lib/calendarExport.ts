@@ -11,7 +11,9 @@ const MAX_GOOGLE_DETAILS_LENGTH = 1000
 const MAX_ICS_LINE_BYTES = 75
 
 // Only events with a date can be put in a calendar
-export const canExport = ({ event }: ExportableEvent) => Boolean(event.startsAt && event.endsAt)
+const hasValidTime = (time: string | null) => Boolean(time && Number.isFinite(new Date(time).getTime()))
+
+export const canExport = ({ event }: ExportableEvent) => hasValidTime(event.startsAt) && hasValidTime(event.endsAt)
 
 const eventUrl = (id: string) => `${window.location.origin}${eventLink(id)}`
 
@@ -30,13 +32,13 @@ const utcStamp = (time: string | Date) =>
 
 // Opens Google Calendar with the event filled in, for the member to save
 export function googleCalendarUrl(post: ExportableEvent) {
+  if (!canExport(post)) return null
   const { title, location, startsAt, endsAt } = post.event
-  if (!startsAt || !endsAt) return null
 
   const params = new URLSearchParams({
     action: 'TEMPLATE',
     text: title,
-    dates: `${utcStamp(startsAt)}/${utcStamp(endsAt)}`,
+    dates: `${utcStamp(startsAt!)}/${utcStamp(endsAt!)}`,
     details: description(post, MAX_GOOGLE_DETAILS_LENGTH),
   })
   if (location) params.set('location', location)
@@ -73,16 +75,16 @@ function fold(line: string) {
 }
 
 function icsEvent(post: ExportableEvent, now: string) {
+  if (!canExport(post)) return []
   const { title, location, startsAt, endsAt } = post.event
-  if (!startsAt || !endsAt) return []
 
   return [
     'BEGIN:VEVENT',
     // The same every time, so importing an event again updates it rather than doubling it
     `UID:${post.id}@tebonsma.no`,
     `DTSTAMP:${now}`,
-    `DTSTART:${utcStamp(startsAt)}`,
-    `DTEND:${utcStamp(endsAt)}`,
+    `DTSTART:${utcStamp(startsAt!)}`,
+    `DTEND:${utcStamp(endsAt!)}`,
     `SUMMARY:${escapeText(title)}`,
     `DESCRIPTION:${escapeText(description(post))}`,
     ...(location ? [`LOCATION:${escapeText(location)}`] : []),
@@ -102,7 +104,7 @@ export function toIcs(posts: ExportableEvent[]) {
     'CALSCALE:GREGORIAN',
     'METHOD:PUBLISH',
     'X-WR-CALNAME:TEBONSMA',
-    ...posts.flatMap(post => icsEvent(post, now)),
+    ...posts.filter(canExport).flatMap(post => icsEvent(post, now)),
     'END:VCALENDAR',
   ]
     .map(fold)
