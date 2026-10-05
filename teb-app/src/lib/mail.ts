@@ -325,3 +325,48 @@ export const sendMail = (token: string, fields: ComposeFields, attachments: Atta
   apiFetch<Sent>('/mail/send', token, json('POST', { ...payloadOf(fields, attachments), draftId: fields.draftId }))
 
 export const cancelSend = (token: string, outboxId: string) => apiFetch<{ draftId: string }>(`/mail/outbox/${outboxId}`, token, json('DELETE'))
+
+// --- Snoozing ---
+
+// With a time the mails leave the inbox until then. With null, snoozing is taken off.
+export const snoozeMessages = (token: string, ids: string[], until: string | null) =>
+  apiFetch<{ moved: number }>('/mail/messages/snooze', token, json('POST', { ids, until }))
+
+export interface SnoozePreset {
+  label: string
+  until: Date
+}
+
+const at = (base: Date, daysAhead: number, hour: number) => {
+  const day = new Date(base)
+  day.setDate(day.getDate() + daysAhead)
+  day.setHours(hour, 0, 0, 0)
+  return day
+}
+
+// The times the snooze menu offers, counted from now: later today, tomorrow, the weekend and next week
+export function snoozePresets(now: Date): SnoozePreset[] {
+  const presets: SnoozePreset[] = []
+  if (now.getHours() < 15) presets.push({ label: 'Senere i dag', until: at(now, 0, 18) })
+  presets.push({ label: 'I morgen', until: at(now, 1, 8) })
+  const weekday = now.getDay() // 0 is Sunday
+  if (weekday >= 1 && weekday <= 5) presets.push({ label: 'I helgen', until: at(now, 6 - weekday, 9) })
+  presets.push({ label: 'Neste uke', until: at(now, weekday === 0 ? 1 : 8 - weekday, 8) })
+  return presets
+}
+
+// --- Auto-reply ---
+
+export interface AutoReply {
+  enabled: boolean
+  subject: string
+  body: string
+  // The first and last day it answers, as YYYY-MM-DD
+  from: string | null
+  to: string | null
+}
+
+export const getAutoReply = (token: string) => apiFetch<AutoReply>('/mail/auto-reply', token)
+
+export const saveAutoReply = (token: string, settings: AutoReply) =>
+  apiFetch<AutoReply>('/mail/auto-reply', token, json('PUT', settings))

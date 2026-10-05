@@ -3,12 +3,15 @@ import type { Folder, Label, MailSummary } from '../../lib/mail'
 import { ACTION } from '../feed/styles'
 import LabelMenu from './LabelMenu'
 import MoveMenu from './MoveMenu'
+import SnoozeMenu from './SnoozeMenu'
 
 export interface MailActionHandlers {
   onFlags: (change: { seen?: boolean; flagged?: boolean }) => void
   onLabels: (add: string[], remove: string[]) => void
   onMove: (folder: string) => void
   onRestore: () => void
+  // A time to bring the mails back at, or null to take snoozing off
+  onSnooze: (until: string | null) => void
   onDeleteForever: () => void
   onLabelCreated: () => void
 }
@@ -74,6 +77,7 @@ const MailActions = ({ token, mails, folders, labels, current, disabled, ...on }
         <span className="hidden sm:inline">{allFlagged ? 'Fjern favoritt' : 'Favoritt'}</span>
       </button>
       <LabelMenu token={token} labels={labels} mails={mails} onChange={on.onLabels} onCreated={on.onLabelCreated} />
+      {!inTrash && <SnoozeMenu snoozed={everyIn('snoozed')} onSnooze={on.onSnooze} />}
       {!inTrash && <MoveMenu folders={folders} current={current} onMove={on.onMove} />}
     </div>
   )

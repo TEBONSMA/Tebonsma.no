@@ -26,6 +26,7 @@ import {
   moveMessages,
   restoreMessages,
   setFlags,
+  snoozeMessages,
   type ComposeMode,
   type ComposeSeed,
   type MailFilter,
@@ -158,6 +159,11 @@ export default function Mail() {
       onMove: target =>
         run(
           () => moveMessages(token!, ids, target),
+          () => gone(ids),
+        ),
+      onSnooze: until =>
+        run(
+          () => snoozeMessages(token!, ids, until),
           () => gone(ids),
         ),
       onRestore: () =>

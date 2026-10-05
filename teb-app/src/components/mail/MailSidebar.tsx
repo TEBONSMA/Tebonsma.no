@@ -8,6 +8,7 @@ import {
   Folder as FolderIcon,
   Inbox,
   Pencil,
+  Settings,
   Plus,
   Send,
   ShieldAlert,
@@ -184,6 +185,10 @@ const MailSidebar = ({ token, folders, labels, active, activeLabel, onChanged, o
           ))}
         </>
       )}
+      <Link to="/mail/autosvar" onClick={onNavigate} className={cn(ITEM, 'mt-3 text-white/60 hover:bg-white/5 hover:text-white')}>
+        <Settings size={16} aria-hidden="true" className="shrink-0" />
+        Autosvar og innstillinger
+      </Link>
       {error && <p className={`${ERROR_TEXT} px-3 pt-2`}>{error}</p>}
     </nav>
   )
