@@ -10,6 +10,7 @@ const makePost = (overrides: Partial<ExportableEvent> = {}): ExportableEvent => 
     startsAt: '2026-10-04T20:00:00+02:00',
     endsAt: '2026-10-04T22:15:00+02:00',
     betting: false,
+    organizers: [],
     rsvp: null,
   },
   ...overrides,

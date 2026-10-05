@@ -146,7 +146,7 @@ const PostCard = ({ post, commentsOpen = false, onChange, onDelete }: PostCardPr
   const visibilityLabel = post.visibility === 'public' ? 'Synlig for alle' : 'Kun for medlemmer'
   const canDelete = post.mine || isAdmin
   const canReport = !!token && !post.mine
-  const hasMenu = !!token && (post.mine || isAdmin || canReport)
+  const hasMenu = !!token && (post.canEdit || isAdmin || canReport)
 
   return (
     <article className={cn(CARD, post.pinned && 'border-teb-orange/40')}>
@@ -193,13 +193,13 @@ const PostCard = ({ post, commentsOpen = false, onChange, onDelete }: PostCardPr
               </button>
               {menuOpen && (
                 <div role="menu" className={`${MENU} right-0 top-[calc(100%+4px)] w-52`}>
-                  {post.mine && (
+                  {post.canEdit && (
                     <button type="button" role="menuitem" className={MENU_ITEM} onClick={() => openPanel('edit')}>
                       <Pencil size={16} aria-hidden="true" />
                       Rediger
                     </button>
                   )}
-                  {post.mine && post.event && (
+                  {post.canEdit && post.event && (
                     <button type="button" role="menuitem" className={MENU_ITEM} onClick={() => openPanel('announce')}>
                       <Megaphone size={16} aria-hidden="true" />
                       Send kunngjøring
@@ -266,7 +266,7 @@ const PostCard = ({ post, commentsOpen = false, onChange, onDelete }: PostCardPr
                 postId={post.id}
                 poll={post.poll}
                 token={token}
-                canAdd={post.mine}
+                canAdd={post.canEdit}
                 onChange={poll => onChange({ ...post, poll })}
               />
             )}
