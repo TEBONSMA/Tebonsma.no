@@ -39,16 +39,25 @@ async function shrinkPicture(file: File): Promise<File> {
 
 // The files being put on a post or comment: each is uploaded as it is chosen, and belongs
 // to nothing until the post or comment is saved
-export function useAttachments(token: string, max: number, initial: Attachment[] = []) {
+export interface AttachmentOptions {
+  // Sends the file to wherever it is kept. The feed's own by default.
+  upload?: (token: string, file: File) => Promise<Attachment>
+  maxBytes?: number
+  // Pictures are made smaller before upload unless this is false
+  shrink?: boolean
+}
+
+export function useAttachments(token: string, max: number, initial: Attachment[] = [], options: AttachmentOptions = {}) {
+  const { upload: uploadFile = uploadAttachment, maxBytes = MAX_ATTACHMENT_BYTES, shrink = true } = options
   const [attachments, setAttachments] = useState<Attachment[]>(initial)
   const [uploading, setUploading] = useState(0)
   const [error, setError] = useState<string | null>(null)
 
   // The size limit is checked after shrinking, so large photos still get through
   const send = async (file: File) => {
-    const ready = await shrinkPicture(file)
-    if (ready.size > MAX_ATTACHMENT_BYTES) throw new Error(`Filen er større enn ${formatSize(MAX_ATTACHMENT_BYTES)}`)
-    return uploadAttachment(token, ready)
+    const ready = shrink ? await shrinkPicture(file) : file
+    if (ready.size > maxBytes) throw new Error(`Filen er større enn ${formatSize(maxBytes)}`)
+    return uploadFile(token, ready)
   }
 
   const upload = (files: FileList | null) => {

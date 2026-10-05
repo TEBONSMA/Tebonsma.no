@@ -18,6 +18,10 @@ export default defineConfig({
         manualChunks(id) {
           //split node_modules into vendor chunks
           if (id.includes('node_modules')) {
+            // The mail editor is only needed on /mail, and its paths contain 'react', so it is picked out first
+            if (id.includes('@tiptap') || id.includes('prosemirror') || id.includes('/orderedmap') || id.includes('/rope-sequence')) {
+              return 'editor_vendor'
+            }
             if (id.includes('react') || id.includes('react-dom')) {
               return 'react_vendor'
             }

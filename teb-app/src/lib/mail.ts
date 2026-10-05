@@ -1,5 +1,5 @@
 import { apiFetch, apiFetchBlob } from './api'
-import { json } from './feed'
+import { json, type Attachment } from './feed'
 
 // What the mail pages need to talk to the API's /mail routes. The shapes match what
 // src/mail/mail.ts in tebonsma-api returns.
@@ -196,3 +196,132 @@ export const updateLabel = (token: string, id: string, changes: { name?: string;
   apiFetch<Label>(`/mail/labels/${id}`, token, json('PATCH', changes))
 
 export const deleteLabel = (token: string, id: string) => apiFetch<unknown>(`/mail/labels/${id}`, token, json('DELETE'))
+
+// --- Writing ---
+
+// Somebody a mail goes to: an address, or a member of the site, whose address only the API knows
+export interface Person {
+  name: string
+  address?: string
+  memberId?: string
+}
+
+// A member as the site lists them: no username, no address
+export interface Member {
+  id: string
+  name: string
+  avatar: string | null
+}
+
+export const getMembers = (token: string) => apiFetch<Member[]>('/members', token)
+
+export interface Threading {
+  inReplyTo: string | null
+  references: string[]
+}
+
+export interface ComposeFields {
+  to: Person[]
+  cc: Person[]
+  bcc: Person[]
+  subject: string
+  html: string
+  // The mail is kept as a draft under this id until it has been sent
+  draftId: string | null
+  replyTo: string | null
+  forwardOf: string | null
+  threading: Threading | null
+}
+
+export interface ComposeSeed {
+  fields: ComposeFields
+  attachments: Attachment[]
+}
+
+export const EMPTY_FIELDS: ComposeFields = {
+  to: [],
+  cc: [],
+  bcc: [],
+  subject: '',
+  html: '',
+  draftId: null,
+  replyTo: null,
+  forwardOf: null,
+  threading: null,
+}
+
+export type ComposeMode = 'reply' | 'replyAll' | 'forward' | 'draft'
+
+interface ComposeStart extends Omit<ComposeFields, 'to' | 'cc' | 'bcc'> {
+  to: MailAddress[]
+  cc: MailAddress[]
+  bcc: MailAddress[]
+  attachments: Attachment[]
+}
+
+const fromAddress = (a: MailAddress): Person => ({ name: a.name, address: a.address })
+
+// What a new mail starts with when it answers, forwards or continues another
+export async function getComposeSeed(token: string, id: string, mode: ComposeMode): Promise<ComposeSeed> {
+  const start = await apiFetch<ComposeStart>(`/mail/messages/${encodeURIComponent(id)}/compose?mode=${mode}`, token)
+  const { attachments, ...fields } = start
+  return {
+    fields: { ...fields, to: start.to.map(fromAddress), cc: start.cc.map(fromAddress), bcc: start.bcc.map(fromAddress) },
+    attachments,
+  }
+}
+
+export interface MailSettings {
+  // HTML, put at the end of new mails
+  signature: string
+  undoSeconds: number
+  conversations: boolean
+}
+
+export const getMailSettings = (token: string) => apiFetch<MailSettings>('/mail/settings', token)
+
+export const saveMailSettings = (token: string, settings: MailSettings) =>
+  apiFetch<MailSettings>('/mail/settings', token, json('PUT', settings))
+
+export const MAX_MAIL_ATTACHMENT_BYTES = 25 * 1024 * 1024
+export const MAX_MAIL_ATTACHMENTS = 30
+export const MAX_RECIPIENTS = 50
+
+export function uploadMailFile(token: string, file: File) {
+  const form = new FormData()
+  form.append('file', file)
+  return apiFetch<Attachment>('/mail/uploads', token, { method: 'POST', body: form })
+}
+
+const recipient = (person: Person) => (person.memberId ? { memberId: person.memberId } : person.address)
+
+function payloadOf(fields: ComposeFields, attachments: Attachment[]) {
+  return {
+    to: fields.to.map(recipient),
+    cc: fields.cc.map(recipient),
+    bcc: fields.bcc.map(recipient),
+    subject: fields.subject,
+    html: fields.html,
+    uploadIds: attachments.map(a => a.id),
+    replyTo: fields.replyTo,
+    forwardOf: fields.forwardOf,
+    threading: fields.threading,
+  }
+}
+
+export const saveDraft = (token: string, draftId: string, fields: ComposeFields, attachments: Attachment[]) =>
+  apiFetch<{ draftId: string }>(`/mail/drafts/${draftId}`, token, json('PUT', payloadOf(fields, attachments)))
+
+export const deleteDraft = (token: string, draftId: string) => apiFetch<unknown>(`/mail/drafts/${draftId}`, token, json('DELETE'))
+
+export interface Sent {
+  // Until sendAt the sending can be taken back. Null when there is no waiting time and the mail has gone.
+  outboxId: string | null
+  sendAt: string
+  draftId: string
+}
+
+export const sendMail = (token: string, fields: ComposeFields, attachments: Attachment[]) =>
+  apiFetch<Sent>('/mail/send', token, json('POST', { ...payloadOf(fields, attachments), draftId: fields.draftId }))
+
+export const cancelSend = (token: string, outboxId: string) => apiFetch<{ draftId: string }>(`/mail/outbox/${outboxId}`, token, json('DELETE'))

@@ -3,11 +3,13 @@ import { useAuth } from '../../auth/AuthContext'
 import { errorMessage } from '../../lib/feed'
 import {
   getFolders,
+  getMembers,
   getConversation,
   getMessage,
   listMessages,
   type Folder,
   type Label,
+  type Member,
   type MailFilter,
   type MailMessage,
   type MailSort,
@@ -196,4 +198,31 @@ export function useMessageBody(id: string, open: boolean, images: boolean) {
   // A mail that has been loaded stays on screen while it is fetched again with pictures
   const shown = current ?? loaded
   return { message: shown?.message ?? null, error: current?.error ?? null, loading: open && !current && !shown?.message }
+}
+
+// The members that can be picked as recipients. Fetched the first time the writing window is
+// opened, since the list is only needed there.
+export function useMembers(enabled: boolean) {
+  const { user } = useAuth()
+  const token = user?.access_token ?? null
+  const [members, setMembers] = useState<Member[]>([])
+  const [fetched, setFetched] = useState(false)
+
+  useEffect(() => {
+    if (!enabled || !token || fetched) return
+    let active = true
+    getMembers(token)
+      .then(list => {
+        if (!active) return
+        setMembers(list)
+        setFetched(true)
+      })
+      // Recipients can still be typed in without the list
+      .catch(() => active && setFetched(true))
+    return () => {
+      active = false
+    }
+  }, [enabled, token, fetched])
+
+  return members
 }

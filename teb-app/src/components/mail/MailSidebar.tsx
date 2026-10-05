@@ -7,6 +7,7 @@ import {
   FileText,
   Folder as FolderIcon,
   Inbox,
+  Pencil,
   Plus,
   Send,
   ShieldAlert,
@@ -19,7 +20,7 @@ import {
 import { errorMessage } from '../../lib/feed'
 import { createFolder, deleteLabel, type Folder, type Label, type Role } from '../../lib/mail'
 import { cn } from '../../lib/utils'
-import { ERROR_TEXT, INPUT } from '../feed/styles'
+import { BUTTON_PRIMARY, ERROR_TEXT, INPUT } from '../feed/styles'
 import { LABEL_DOT } from './labelStyles'
 
 const ICONS: Record<Role, LucideIcon> = {
@@ -48,6 +49,7 @@ interface MailSidebarProps {
   // Something about folders or labels changed, so they should be fetched again
   onChanged: () => void
   onNavigate: () => void
+  onCompose: () => void
 }
 
 const ITEM = 'flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors'
@@ -78,7 +80,7 @@ const Entry = ({ to, icon: Icon, name, count = 0, active, onNavigate }: EntryPro
   </Link>
 )
 
-const MailSidebar = ({ token, folders, labels, active, activeLabel, onChanged, onNavigate }: MailSidebarProps) => {
+const MailSidebar = ({ token, folders, labels, active, activeLabel, onChanged, onNavigate, onCompose }: MailSidebarProps) => {
   const [adding, setAdding] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -113,6 +115,17 @@ const MailSidebar = ({ token, folders, labels, active, activeLabel, onChanged, o
 
   return (
     <nav aria-label="Mapper" className="flex flex-col gap-0.5">
+      <button
+        type="button"
+        onClick={() => {
+          onNavigate()
+          onCompose()
+        }}
+        className={`${BUTTON_PRIMARY} mb-2 w-full`}
+      >
+        <Pencil size={16} aria-hidden="true" />
+        Ny mail
+      </button>
       {folders === null && <p className="px-3 py-2 text-sm text-white/40">Laster mapper…</p>}
 
       {roles.slice(0, 1).map(folder => (

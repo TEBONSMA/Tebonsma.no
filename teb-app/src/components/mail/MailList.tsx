@@ -21,6 +21,8 @@ interface MailListProps {
   loadingMore: boolean
   onLoadMore: () => void
   onRetry: () => void
+  // A draft is opened for writing instead of for reading
+  onOpenDraft: ((mail: MailSummary) => void) | null
 }
 
 // Mails the member sent, kept as drafts or has scheduled are listed by who they went to
@@ -40,6 +42,7 @@ const MailList = ({
   loadingMore,
   onLoadMore,
   onRetry,
+  onOpenDraft,
 }: MailListProps) => {
   if (error) {
     return (
@@ -65,6 +68,28 @@ const MailList = ({
               : OUTGOING.has(mail.folder)
                 ? mail.to.map(senderName).join(', ') || 'Ingen mottaker'
                 : senderName(mail.from)
+          const row = (
+            <>
+              <span className="flex items-center gap-2">
+                {!mail.seen && <span className="h-2 w-2 shrink-0 rounded-full bg-teb-orange" aria-label="Ulest" />}
+                <span className={cn('min-w-0 flex-1 truncate text-sm', mail.seen ? 'text-white/70' : 'font-semibold text-white')}>
+                  {who}
+                  {mail.count > 1 && (
+                    <span className="ml-1.5 text-xs font-normal text-white/40" aria-label={`${mail.count} mails`}>
+                      {mail.count}
+                    </span>
+                  )}
+                </span>
+                {mail.hasAttachments && <Paperclip size={14} aria-label="Har vedlegg" className="shrink-0 text-white/50" />}
+                <span className="shrink-0 text-xs text-white/40">{listDate(mail.date)}</span>
+              </span>
+              <span className={cn('block truncate text-sm', mail.seen ? 'text-white/60' : 'font-medium text-white/90')}>
+                {mail.subject || '(uten emne)'}
+              </span>
+              <span className="block truncate text-xs text-white/40">{mail.preview}</span>
+              <LabelChips ids={mail.labels} labels={labels} className="mt-1" />
+            </>
+          )
           return (
             <li
               key={mail.id}
@@ -90,26 +115,19 @@ const MailList = ({
               >
                 <Star size={16} aria-hidden="true" className={mail.flagged ? 'fill-amber-300 text-amber-300' : undefined} />
               </button>
-              <Link
-                to={`/mail/${encodeURIComponent(folder)}/${encodeURIComponent(mail.id)}${search}`}
-                aria-current={mail.id === selected ? 'true' : undefined}
-                className="block min-w-0 flex-1 py-2.5 pr-3"
-              >
-                <span className="flex items-center gap-2">
-                  {!mail.seen && <span className="h-2 w-2 shrink-0 rounded-full bg-teb-orange" aria-label="Ulest" />}
-                  <span className={cn('min-w-0 flex-1 truncate text-sm', mail.seen ? 'text-white/70' : 'font-semibold text-white')}>
-                    {who}
-                    {mail.count > 1 && <span className="ml-1.5 text-xs font-normal text-white/40" aria-label={`${mail.count} mails`}>{mail.count}</span>}
-                  </span>
-                  {mail.hasAttachments && <Paperclip size={14} aria-label="Har vedlegg" className="shrink-0 text-white/50" />}
-                  <span className="shrink-0 text-xs text-white/40">{listDate(mail.date)}</span>
-                </span>
-                <span className={cn('block truncate text-sm', mail.seen ? 'text-white/60' : 'font-medium text-white/90')}>
-                  {mail.subject || '(uten emne)'}
-                </span>
-                <span className="block truncate text-xs text-white/40">{mail.preview}</span>
-                <LabelChips ids={mail.labels} labels={labels} className="mt-1" />
-              </Link>
+              {onOpenDraft ? (
+                <button type="button" onClick={() => onOpenDraft(mail)} className="block min-w-0 flex-1 cursor-pointer py-2.5 pr-3 text-left">
+                  {row}
+                </button>
+              ) : (
+                <Link
+                  to={`/mail/${encodeURIComponent(folder)}/${encodeURIComponent(mail.id)}${search}`}
+                  aria-current={mail.id === selected ? 'true' : undefined}
+                  className="block min-w-0 flex-1 py-2.5 pr-3"
+                >
+                  {row}
+                </Link>
+              )}
             </li>
           )
         })}

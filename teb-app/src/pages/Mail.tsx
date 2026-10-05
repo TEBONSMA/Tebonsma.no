@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Folder as FolderIcon } from 'lucide-react'
 import Badge from '../components/Badge'
@@ -9,21 +9,29 @@ import MailList from '../components/mail/MailList'
 import MailSidebar from '../components/mail/MailSidebar'
 import MailToolbar from '../components/mail/MailToolbar'
 import MailView from '../components/mail/MailView'
-import { useConversation, useFolders, useMailList } from '../components/mail/useMail'
+import UndoToast from '../components/mail/UndoToast'
+import { useConversation, useFolders, useMailList, useMembers } from '../components/mail/useMail'
 import { useAuth } from '../auth/AuthContext'
 import { errorMessage } from '../lib/feed'
 import {
+  cancelSend,
   changeLabels,
   deleteForever,
+  EMPTY_FIELDS,
   emptyTrash,
+  getComposeSeed,
+  getMailSettings,
   conversationSummary,
   isVirtualFolder,
   moveMessages,
   restoreMessages,
   setFlags,
+  type ComposeMode,
+  type ComposeSeed,
   type MailFilter,
   type MailSort,
   type MailSummary,
+  type Sent,
 } from '../lib/mail'
 
 const filterFrom = (params: URLSearchParams): MailFilter => ({
@@ -33,6 +41,9 @@ const filterFrom = (params: URLSearchParams): MailFilter => ({
   flagged: params.get('flagged') === '1' || undefined,
   attachment: params.get('attachment') === '1' || undefined,
 })
+
+// The editor is large and only needed when someone starts writing
+const Composer = lazy(() => import('../components/mail/Composer'))
 
 export default function Mail() {
   const { user, isLoading, login } = useAuth()
@@ -49,6 +60,13 @@ export default function Mail() {
   const [chosen, setChosen] = useState<{ scope: string; ids: string[] }>({ scope, ids: [] })
   const [busy, setBusy] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
+
+  // The writing window, and the note that a mail was sent with the chance to take it back
+  const [composer, setComposer] = useState<{ seed: ComposeSeed; key: number } | null>(null)
+  const [sentNote, setSentNote] = useState<{ sent: Sent; seed: ComposeSeed; key: number } | null>(null)
+  const [undoing, setUndoing] = useState(false)
+  const [undoError, setUndoError] = useState<string | null>(null)
+  const members = useMembers(composer !== null)
 
   const { folders, labels, error: folderError, refresh } = useFolders()
   const list = useMailList(folder, sort, filter)
@@ -88,12 +106,11 @@ export default function Mail() {
   const toggleAll = () => setChosen({ scope, ids: selection.length === loaded.length ? [] : loaded.map(mail => mail.id) })
 
   // Runs a change on the server, and brings the list and the open mail along when it went through
-  const run = async (work: () => Promise<unknown>, done: () => void) => {
+  const run = async <T,>(work: () => Promise<T>, done: (result: T) => void) => {
     setBusy(true)
     setActionError(null)
     try {
-      await work()
-      done()
+      done(await work())
     } catch (err) {
       setActionError(errorMessage(err))
     } finally {
@@ -159,6 +176,57 @@ export default function Mail() {
     }
   }
 
+  // The signature goes at the end of what is written, above anything quoted
+  const withSignature = async (seed: ComposeSeed): Promise<ComposeSeed> => {
+    const { signature } = await getMailSettings(token!)
+    if (!signature) return seed
+    const html = seed.fields.html.startsWith('<p></p>') ? seed.fields.html.slice('<p></p>'.length) : seed.fields.html
+    return { ...seed, fields: { ...seed.fields, html: `<p></p>${signature}${html}` } }
+  }
+
+  const openComposer = (seed: ComposeSeed) => setComposer({ seed, key: Date.now() })
+
+  const startNew = () =>
+    run(
+      () => withSignature({ fields: EMPTY_FIELDS, attachments: [] }),
+      seed => openComposer(seed),
+    )
+
+  const startFrom = (id: string, mode: ComposeMode) =>
+    run(
+      async () => {
+        const seed = await getComposeSeed(token!, id, mode)
+        return mode === 'draft' ? seed : withSignature(seed)
+      },
+      seed => openComposer(seed),
+    )
+
+  const afterSend = (sent: Sent, seed: ComposeSeed) => {
+    setComposer(null)
+    setUndoError(null)
+    setSentNote({ sent, seed, key: Date.now() })
+    // The mail shows up in Sent and the draft leaves Drafts once the waiting time is over
+    const wait = Math.max(0, new Date(sent.sendAt).getTime() - Date.now()) + 800
+    setTimeout(() => {
+      refresh()
+      if (folder === 'sent' || folder === 'drafts') list.retry()
+    }, wait)
+  }
+
+  const undo = async () => {
+    if (!sentNote?.sent.outboxId) return
+    setUndoing(true)
+    try {
+      const { draftId } = await cancelSend(token!, sentNote.sent.outboxId)
+      openComposer({ ...sentNote.seed, fields: { ...sentNote.seed.fields, draftId } })
+      setSentNote(null)
+    } catch (err) {
+      setUndoError(errorMessage(err))
+    } finally {
+      setUndoing(false)
+    }
+  }
+
   if (!token) {
     return (
       <Layout mainClassName="w-full max-w-2xl mx-auto px-4 pt-24 pb-16 space-y-6">
@@ -203,6 +271,7 @@ export default function Mail() {
             activeLabel={filter.label}
             onChanged={refresh}
             onNavigate={() => setShowFolders(false)}
+            onCompose={startNew}
           />
           {folderError && <p className={`${ERROR_TEXT} px-3 pt-2`}>{folderError}</p>}
         </aside>
@@ -269,6 +338,7 @@ export default function Mail() {
               loadingMore={list.loadingMore}
               onLoadMore={list.loadMore}
               onRetry={list.retry}
+              onOpenDraft={folder === 'drafts' ? mail => void startFrom(mail.id, 'draft') : null}
             />
           </div>
         </section>
@@ -295,10 +365,39 @@ export default function Mail() {
               busy={busy}
               {...handlersFor([conversationSummary(actedOn)])}
               actedOn={actedOn}
+              onCompose={mode => void startFrom(opened.messages![opened.messages!.length - 1].id, mode)}
             />
           )}
         </section>
       </div>
+
+      {composer && (
+        <Suspense fallback={null}>
+          <Composer
+            key={composer.key}
+            token={token}
+            seed={composer.seed}
+            members={members}
+            onClose={() => {
+              setComposer(null)
+              refresh()
+              if (folder === 'drafts') list.retry()
+            }}
+            onSent={afterSend}
+          />
+        </Suspense>
+      )}
+      {sentNote && (
+        <UndoToast
+          key={sentNote.key}
+          message="Mail sendt"
+          until={sentNote.sent.outboxId ? sentNote.sent.sendAt : null}
+          onUndo={undo}
+          onDone={() => setSentNote(null)}
+          busy={undoing}
+          error={undoError}
+        />
+      )}
     </Layout>
   )
 }
