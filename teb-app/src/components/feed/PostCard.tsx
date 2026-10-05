@@ -158,7 +158,7 @@ const PostCard = ({ post, commentsOpen = false, onChange, onDelete }: PostCardPr
         )}
 
         <header className="flex items-start gap-3">
-          <MemberLink member={post.author} className="shrink-0">
+          <MemberLink member={post.author} duplicate className="shrink-0">
             <Avatar name={post.author.name} path={post.author.avatar} className="h-10 w-10 text-sm" />
           </MemberLink>
           <div className="min-w-0 flex-1">

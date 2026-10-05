@@ -135,7 +135,7 @@ function CommentItem({ comment, visibility, token, isAdmin, onReply, onChange, o
 
   return (
     <div className="flex gap-2.5">
-      <MemberLink member={comment.author} className="mt-0.5 shrink-0 self-start">
+      <MemberLink member={comment.author} duplicate className="mt-0.5 shrink-0 self-start">
         <Avatar name={comment.author.name} path={comment.author.avatar} className="h-7 w-7 text-[11px]" />
       </MemberLink>
       <div className="min-w-0 flex-1">

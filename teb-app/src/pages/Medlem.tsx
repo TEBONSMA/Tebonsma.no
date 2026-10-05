@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
-import { Coins as CoinsIcon, Trophy, UserCog } from 'lucide-react'
+import { UserCog } from 'lucide-react'
 import Avatar from '../components/Avatar'
 import Badge from '../components/Badge'
 import Layout from '../components/Layout'
@@ -36,10 +36,7 @@ function CoinsCard({ profile }: { profile: MemberProfile }) {
   return (
     <section className={cn(CARD, 'space-y-4 p-5 md:p-6')}>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="flex items-center gap-2 text-xl font-semibold text-white">
-          <CoinsIcon size={20} className="text-teb-orange" aria-hidden="true" />
-          TEB-coins
-        </h2>
+        <h2 className="text-xl font-semibold text-white">TEB-coins</h2>
         <a href={`${TEBBET_URL}/medlem/${encodeURIComponent(member.id)}`} className={BUTTON_GHOST}>
           {isYou ? 'Mine spill på TebBet' : 'Se spillene på TebBet'}
         </a>
@@ -66,10 +63,7 @@ function CoinsCard({ profile }: { profile: MemberProfile }) {
 function RecordsCard({ profile }: { profile: MemberProfile }) {
   return (
     <section className={cn(CARD, 'space-y-4 p-5 md:p-6')}>
-      <h2 className="flex items-center gap-2 text-xl font-semibold text-white">
-        <Trophy size={20} className="text-teb-orange" aria-hidden="true" />
-        Rekorder
-      </h2>
+      <h2 className="text-xl font-semibold text-white">Rekorder</h2>
       <ul className="divide-y divide-white/10">
         {profile.records.map(({ game, players, record }) => {
           const config = getGameBySlug(game)
@@ -101,8 +95,15 @@ function RecordsCard({ profile }: { profile: MemberProfile }) {
 
 function Posts({ token, id, profile }: { token: string; id: string; profile: MemberProfile }) {
   const [kind, setKind] = useState<PostKind>('posts')
+  // Kept here so that deleting a post lowers the number on its tab
+  const [counts, setCounts] = useState(profile.counts)
   const { posts, error, hasMore, loadingMore, loadMore, retry, change, remove } = useMemberPosts(token, id, kind, PAGE_SIZE)
   const tab = TABS.find(t => t.kind === kind)!
+
+  const removePost = (postId: string) => {
+    remove(postId)
+    setCounts(shown => ({ ...shown, [kind]: Math.max(0, shown[kind] - 1) }))
+  }
 
   return (
     <section className="space-y-4">
@@ -119,13 +120,13 @@ function Posts({ token, id, profile }: { token: string; id: string; profile: Mem
               kind === t.kind ? 'bg-teb-orange text-white' : 'border border-white/10 text-white/70 hover:text-white',
             )}
           >
-            {t.label} · {profile.counts[t.kind]}
+            {t.label} · {counts[t.kind]}
           </button>
         ))}
       </div>
 
       {!posts && !error && <p className="py-8 text-center text-white/60">Laster…</p>}
-      {posts?.map(post => <PostCard key={post.id} post={post} onChange={change} onDelete={remove} />)}
+      {posts?.map(post => <PostCard key={post.id} post={post} onChange={change} onDelete={removePost} />)}
       {posts?.length === 0 && !error && (
         <p className="py-8 text-center text-white/60">
           {profile.isYou ? 'Du' : profile.member.name} {tab.empty}
