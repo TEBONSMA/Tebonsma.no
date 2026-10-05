@@ -2,6 +2,7 @@ import { useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { Check, Ellipsis, Flag, Globe, Lock, Megaphone, MessageCircle, Pencil, Pin, PinOff, Share2, Trash2 } from 'lucide-react'
 import Avatar from '../Avatar'
+import MemberLink from '../MemberLink'
 import { cn } from '../../lib/utils'
 import { useProfile } from '../../account/ProfileContext'
 import { useAuth } from '../../auth/AuthContext'
@@ -157,9 +158,13 @@ const PostCard = ({ post, commentsOpen = false, onChange, onDelete }: PostCardPr
         )}
 
         <header className="flex items-start gap-3">
-          <Avatar name={post.author.name} path={post.author.avatar} className="h-10 w-10 text-sm" />
+          <MemberLink member={post.author} className="shrink-0">
+            <Avatar name={post.author.name} path={post.author.avatar} className="h-10 w-10 text-sm" />
+          </MemberLink>
           <div className="min-w-0 flex-1">
-            <p className="truncate font-semibold text-white">{post.author.name}</p>
+            <p className="truncate font-semibold text-white">
+              <MemberLink member={post.author}>{post.author.name}</MemberLink>
+            </p>
             <p className="flex flex-wrap items-center gap-x-1.5 text-xs text-white/50">
               <Link to={`/feed/${post.id}`} className="hover:underline" title={formatDate(post.createdAt)}>
                 <time dateTime={post.createdAt}>{timeAgo(post.createdAt)}</time>

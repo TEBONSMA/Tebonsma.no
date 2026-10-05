@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { ImagePlus, Send } from 'lucide-react'
 import Avatar from '../Avatar'
+import MemberLink from '../MemberLink'
 import { cn } from '../../lib/utils'
 import { useAuth } from '../../auth/AuthContext'
 import {
@@ -134,10 +135,14 @@ function CommentItem({ comment, visibility, token, isAdmin, onReply, onChange, o
 
   return (
     <div className="flex gap-2.5">
-      <Avatar name={comment.author.name} path={comment.author.avatar} className="mt-0.5 h-7 w-7 text-[11px]" />
+      <MemberLink member={comment.author} className="mt-0.5 shrink-0 self-start">
+        <Avatar name={comment.author.name} path={comment.author.avatar} className="h-7 w-7 text-[11px]" />
+      </MemberLink>
       <div className="min-w-0 flex-1">
         <div className="inline-block max-w-full rounded-lg bg-white/5 px-3 py-2">
-          <p className="text-sm font-semibold text-white">{comment.author.name}</p>
+          <p className="text-sm font-semibold text-white">
+            <MemberLink member={comment.author}>{comment.author.name}</MemberLink>
+          </p>
           {comment.body && <p className="whitespace-pre-wrap break-words text-sm text-white/85">{comment.body}</p>}
         </div>
         {comment.attachments.length > 0 && (

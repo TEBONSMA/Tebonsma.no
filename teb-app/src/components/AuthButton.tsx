@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ChevronDown, LogIn, LogOut, UserCog } from 'lucide-react'
+import { ChevronDown, LogIn, LogOut, User, UserCog } from 'lucide-react'
 import { useProfile } from '../account/ProfileContext'
 import { useAuth } from '../auth/AuthContext'
 import { displayName } from '../auth/profile'
@@ -88,6 +88,15 @@ const AuthButton = () => {
             {email && <p className="text-[13px] text-white/60 truncate">{email}</p>}
           </div>
           <div className="flex flex-col gap-0.5">
+            <Link
+              role="menuitem"
+              to="/medlem/meg"
+              className={menuItemClasses}
+              onClick={() => setOpen(false)}
+            >
+              <User size={18} aria-hidden="true" />
+              Min profil
+            </Link>
             <Link
               role="menuitem"
               to="/konto"
