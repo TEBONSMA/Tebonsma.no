@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { LogIn, LogOut, UserCog } from 'lucide-react'
+import { LogIn, LogOut, User, UserCog } from 'lucide-react'
 import { useProfile } from '../account/ProfileContext'
 import { useAuth } from '../auth/AuthContext'
 import { displayName } from '../auth/profile'
@@ -35,6 +35,12 @@ const AuthMenuItems = () => {
         <span className="truncate">
           Innlogget som <span className="font-semibold text-white">{name}</span>
         </span>
+      </li>
+      <li>
+        <Link to="/medlem/meg" className={itemClasses}>
+          <User size={18} aria-hidden="true" />
+          Min profil
+        </Link>
       </li>
       <li>
         <Link to="/konto" className={itemClasses}>

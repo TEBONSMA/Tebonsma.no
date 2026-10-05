@@ -11,6 +11,7 @@ import Konto from './pages/Konto'
 import Feed from './pages/Feed'
 import FeedPost from './pages/FeedPost'
 import Kalender from './pages/Kalender'
+import Medlem from './pages/Medlem'
 import './App.css'
 
 function App() {
@@ -31,6 +32,8 @@ function App() {
             <Route path="/feed" element={<Feed />} />
             <Route path="/feed/:id" element={<FeedPost />} />
             <Route path="/kalender" element={<Kalender />} />
+            <Route path="/medlem" element={<Navigate to="/medlem/meg" replace />} />
+            <Route path="/medlem/:id" element={<Medlem />} />
           </Routes>
         </ProfileProvider>
       </AuthProvider>
