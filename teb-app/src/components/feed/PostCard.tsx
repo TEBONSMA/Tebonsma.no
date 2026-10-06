@@ -2,6 +2,7 @@ import { useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { Check, Ellipsis, Flag, Globe, Lock, Megaphone, MessageCircle, Pencil, Pin, PinOff, Share2, Trash2 } from 'lucide-react'
 import Avatar from '../Avatar'
+import MemberLink from '../MemberLink'
 import { cn } from '../../lib/utils'
 import { useProfile } from '../../account/ProfileContext'
 import { useAuth } from '../../auth/AuthContext'
@@ -22,6 +23,7 @@ import {
 import EventHeader from '../events/EventHeader'
 import Attachments from './Attachments'
 import Comments from './Comments'
+import EventPoll from './EventPoll'
 import LikeButton from './LikeButton'
 import PollView from './PollView'
 import PostEditor from './PostEditor'
@@ -157,9 +159,13 @@ const PostCard = ({ post, commentsOpen = false, onChange, onDelete }: PostCardPr
         )}
 
         <header className="flex items-start gap-3">
-          <Avatar name={post.author.name} path={post.author.avatar} className="h-10 w-10 text-sm" />
+          <MemberLink member={post.author} duplicate className="shrink-0">
+            <Avatar name={post.author.name} path={post.author.avatar} className="h-10 w-10 text-sm" />
+          </MemberLink>
           <div className="min-w-0 flex-1">
-            <p className="truncate font-semibold text-white">{post.author.name}</p>
+            <p className="truncate font-semibold text-white">
+              <MemberLink member={post.author}>{post.author.name}</MemberLink>
+            </p>
             <p className="flex flex-wrap items-center gap-x-1.5 text-xs text-white/50">
               <Link to={`/feed/${post.id}`} className="hover:underline" title={formatDate(post.createdAt)}>
                 <time dateTime={post.createdAt}>{timeAgo(post.createdAt)}</time>
@@ -252,8 +258,17 @@ const PostCard = ({ post, commentsOpen = false, onChange, onDelete }: PostCardPr
             {post.body && (
               <p className="whitespace-pre-wrap break-words text-[15px] leading-relaxed text-white/90">{withLinks(post.body)}</p>
             )}
-            {post.poll && (
+            {post.poll && !post.event && (
               <PollView postId={post.id} poll={post.poll} token={token} onChange={poll => onChange({ ...post, poll })} />
+            )}
+            {post.event && (
+              <EventPoll
+                postId={post.id}
+                poll={post.poll}
+                token={token}
+                canAdd={post.mine}
+                onChange={poll => onChange({ ...post, poll })}
+              />
             )}
             {post.attachments.length > 0 && (
               <Attachments attachments={post.attachments} visibility={post.visibility} token={token} />

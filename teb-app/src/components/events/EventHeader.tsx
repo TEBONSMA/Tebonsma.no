@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Check, Clock, MapPin, X } from 'lucide-react'
 import Avatar from '../Avatar'
+import MemberLink from '../MemberLink'
 import { cn } from '../../lib/utils'
 import {
   eventLink,
@@ -109,7 +110,9 @@ function SignUp({ postId, rsvp, closed, token, onChange }: SignUpProps) {
                 {answered[value].map(member => (
                   <li key={member.id} className="flex items-center gap-2 py-0.5 text-sm text-white/90">
                     <Avatar name={member.name} path={member.avatar} className="h-6 w-6 text-[10px]" />
-                    <span className="truncate">{member.name}</span>
+                    <MemberLink member={member} className="truncate">
+                      {member.name}
+                    </MemberLink>
                   </li>
                 ))}
               </ul>

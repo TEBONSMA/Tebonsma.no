@@ -301,7 +301,7 @@ export default function Mail() {
   const actedOn = inFolder.length > 0 ? inFolder : (opened.messages ?? [])
 
   return (
-    <Layout mainClassName="w-full max-w-7xl mx-auto px-4 pt-20 pb-6">
+    <Layout mainClassName="w-full max-w-7xl mx-auto px-4 pt-4 pb-6">
       <div className="mb-3 flex items-center justify-between gap-2 lg:hidden">
         <button type="button" className={BUTTON_GHOST} onClick={() => setShowFolders(open => !open)} aria-expanded={showFolders}>
           <FolderIcon size={16} aria-hidden="true" />

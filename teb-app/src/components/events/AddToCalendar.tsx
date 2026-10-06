@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { CalendarPlus, Download, ExternalLink } from 'lucide-react'
-import { downloadEvent, googleCalendarUrl, type ExportableEvent } from '../../lib/calendarExport'
+import { canExport, downloadEvent, googleCalendarUrl, type ExportableEvent } from '../../lib/calendarExport'
 import { BUTTON_GHOST, MENU, MENU_ITEM } from '../feed/styles'
 import { useDismiss } from '../feed/useDismiss'
 
@@ -11,6 +11,7 @@ const AddToCalendar = ({ post }: { post: ExportableEvent }) => {
   const rootRef = useRef<HTMLDivElement>(null)
   useDismiss(rootRef, open, () => setOpen(false))
 
+  if (!canExport(post)) return null
   const googleUrl = googleCalendarUrl(post)
   if (!googleUrl) return null
 
