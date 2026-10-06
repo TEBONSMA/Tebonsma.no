@@ -1,70 +1,50 @@
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Bell } from 'lucide-react'
+import { Bell, Mail, MailWarning } from 'lucide-react'
 import Avatar from '../Avatar'
 import { useAuth } from '../../auth/AuthContext'
-import { getNotifications, markNotificationsRead, timeAgo, type Notification } from '../../lib/feed'
+import { timeAgo, type Notification } from '../../lib/feed'
 import { MENU } from './styles'
 import { useDismiss } from './useDismiss'
-
-const POLL_MS = 60_000
+import { useNotifications } from './NotificationsContext'
 
 const TEXT: Record<Notification['kind'], string> = {
   comment: 'kommenterte innlegget ditt',
   reply: 'svarte på kommentaren din',
   event: 'publiserte et arrangement',
   announcement: 'sendte en kunngjøring',
+  mail: 'sendte deg en mail',
+  mail_share: 'delte en mail med deg',
+  mail_failed: 'En planlagt mail ble ikke sendt. Den ligger i Kladder.',
 }
 
-// Tells members when someone comments on their post or answers their comment, and about
-// new events and what their organizers announce
+// Where a notification leads: the post or the mail it is about
+const targetOf = (item: Notification) => {
+  if (item.kind === 'mail') return item.mailId ? `/mail/inbox/${encodeURIComponent(item.mailId)}` : '/mail'
+  if (item.kind === 'mail_share') return item.mailId ? `/mail/shared/${encodeURIComponent(item.mailId)}` : '/mail/shared'
+  if (item.kind === 'mail_failed') return '/mail/drafts'
+  return `/feed/${item.postId}`
+}
+
+// Tells members when someone comments on their post or answers their comment, about new events
+// and what their organizers announce, and about their mail: new mail, shared mail, and mail that
+// was meant to be sent later and wasn't
 const NotificationBell = () => {
   const { user } = useAuth()
   const token = user?.access_token
   const navigate = useNavigate()
   const rootRef = useRef<HTMLDivElement>(null)
   const [open, setOpen] = useState(false)
-  const [items, setItems] = useState<Notification[]>([])
-  const [unread, setUnread] = useState(0)
+  const { items, unread, markRead } = useNotifications()
 
   useDismiss(rootRef, open, () => setOpen(false))
 
-  useEffect(() => {
-    if (!token) return
-    let active = true
-    const refresh = () => {
-      if (document.hidden) return
-      getNotifications(token)
-        .then(loaded => {
-          if (!active) return
-          setItems(loaded.items)
-          setUnread(loaded.unread)
-        })
-        .catch(() => {}) // Tried again on the next round
-    }
-    refresh()
-    const timer = setInterval(refresh, POLL_MS)
-    document.addEventListener('visibilitychange', refresh)
-    return () => {
-      active = false
-      clearInterval(timer)
-      document.removeEventListener('visibilitychange', refresh)
-    }
-  }, [token])
-
   if (!token) return null
-
-  const markRead = (ids?: string[]) => {
-    const isRead = (item: Notification) => item.read || !ids || ids.includes(item.id)
-    setUnread(items.filter(item => !isRead(item)).length)
-    setItems(items.map(item => ({ ...item, read: isRead(item) })))
-    markNotificationsRead(token, ids).catch(() => {})
-  }
 
   const openItem = (item: Notification) => {
     setOpen(false)
     if (!item.read) markRead([item.id])
-    navigate(`/feed/${item.postId}`)
+    navigate(targetOf(item))
   }
 
   return (
@@ -107,10 +87,17 @@ const NotificationBell = () => {
                     onClick={() => openItem(item)}
                     className="flex w-full items-start gap-2.5 rounded-md px-3 py-2 text-left cursor-pointer transition-colors hover:bg-white/10"
                   >
-                    <Avatar name={item.actor.name} path={item.actor.avatar} className="mt-0.5 h-8 w-8 text-xs" />
+                    {item.actor ? (
+                      <Avatar name={item.actor.name} path={item.actor.avatar} className="mt-0.5 h-8 w-8 text-xs" />
+                    ) : (
+                      <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/10 text-white/70" aria-hidden="true">
+                        {item.kind === 'mail_failed' ? <MailWarning size={16} /> : <Mail size={16} />}
+                      </span>
+                    )}
                     <span className="min-w-0 flex-1">
                       <span className="block text-sm text-white/80">
-                        <span className="font-semibold text-white">{item.actor.name}</span> {TEXT[item.kind]}
+                        {item.kind !== 'mail_failed' && <span className="font-semibold text-white">{item.actor?.name ?? (item.kind === 'mail' || item.kind === 'mail_share' ? item.sender : '')}</span>}{' '}
+                        {TEXT[item.kind]}
                       </span>
                       <span className="block truncate text-sm text-white/50">{item.excerpt}</span>
                       <span className="block text-xs text-white/40">{timeAgo(item.createdAt)}</span>

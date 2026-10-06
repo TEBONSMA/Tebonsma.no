@@ -6,6 +6,7 @@ import { TEBBET_URL } from '../lib/tebbet'
 import AuthButton from './AuthButton'
 import AuthMenuItems from './AuthMenuItems'
 import NotificationBell from './feed/NotificationBell'
+import { useNotifications } from './feed/NotificationsContext'
 
 const navItems = [
   { label: 'Hjem', href: '/' },
@@ -15,13 +16,26 @@ const navItems = [
   { label: 'Om oss', href: '/about' },
 ]
 
+// Mail is the member's own mailbox, so it is only in the menu when someone is logged in
+const MAIL_ITEM = { label: 'Mail', href: '/mail' }
+
+// The number of unread mails next to Mail in the menu
+const UnreadBadge = ({ count }: { count: number }) =>
+  count > 0 && (
+    <span className="ml-1.5 inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-teb-orange px-1 text-[11px] font-bold text-white" aria-label={`${count} uleste`}>
+      {count > 99 ? '99+' : count}
+    </span>
+  )
+
 const isActive = (pathname: string, href: string) =>
   href === '/' ? pathname === '/' : pathname.startsWith(href)
 
 const Header = () => {
   const location = useLocation()
   const { user } = useAuth()
+  const { mailUnread } = useNotifications()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const items = user ? [...navItems.slice(0, 3), MAIL_ITEM, ...navItems.slice(3)] : navItems
 
   return (
     <header className="sticky top-0 z-50 border-b border-white/10 bg-neutral-950/80 backdrop-blur-md">
@@ -34,7 +48,7 @@ const Header = () => {
         </Link>
 
         <nav aria-label="Primary" className="hidden md:flex col-start-2 items-center gap-5 lg:gap-6 xl:gap-8">
-          {navItems.map((item) => {
+          {items.map((item) => {
             const active = isActive(location.pathname, item.href)
             return (
               <Link
@@ -45,6 +59,7 @@ const Header = () => {
                 }`}
               >
                 {item.label}
+                {item === MAIL_ITEM && <UnreadBadge count={mailUnread} />}
                 {active && (
                   <span className="absolute left-0 right-0 -bottom-[1px] h-[2px] bg-teb-orange rounded-full" />
                 )}
@@ -83,7 +98,7 @@ const Header = () => {
 
       {isMenuOpen && (
         <nav aria-label="Mobil" className="md:hidden border-t border-white/10 bg-neutral-950 px-6 py-4 flex flex-col gap-1">
-          {navItems.map((item) => {
+          {items.map((item) => {
             const active = isActive(location.pathname, item.href)
             return (
               <Link
@@ -93,6 +108,7 @@ const Header = () => {
                 className={`py-2 text-sm font-medium ${active ? 'text-white' : 'text-white/60'}`}
               >
                 {item.label}
+                {item === MAIL_ITEM && <UnreadBadge count={mailUnread} />}
               </Link>
             )
           })}

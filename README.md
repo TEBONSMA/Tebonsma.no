@@ -31,6 +31,7 @@ page, and hosts a small collection of browser games with a shared leaderboard.
 | --- | --- |
 | Public pages | Home, About, Contact, and an events calendar |
 | Member accounts | OpenID Connect sign-in and a `/konto` page for editing profile details and avatar |
+| Mail | Webmail for members' own `@tebonsma.no` mailboxes (`/mail`): folders, conversations, labels, search, rich text, drafts, attachments, undo send, snooze, send later, auto-reply, and sharing a mail with a member or to the feed. Notifications about new mail show in the bell, and unread mail is counted in the menu |
 | Games | Flappy Teb, Snake Teb and 2048 Teb, served as standalone canvas games |
 | Leaderboard | Flappy Teb scores are submitted to and ranked by the API |
 | Motion and UI | Animated components built on Motion and Tailwind CSS, responsive from mobile up |
@@ -46,6 +47,12 @@ page, and hosts a small collection of browser games with a shared leaderboard.
 | `/games/flappy-teb` | Flappy Teb (with leaderboard) |
 | `/games/:slug` | Other games, such as `snake-teb` and `2048-teb` |
 | `/konto` | Member account page (requires sign-in) |
+| `/feed`, `/feed/:id` | News feed and a single post |
+| `/kalender` | Event calendar |
+| `/mail` | Webmail, the inbox (requires sign-in) |
+| `/mail/:folder`, `/mail/:folder/:id` | A folder, and a mail or conversation in it. `:folder` is `inbox`, `sent`, `drafts`, `archive`, `junk`, `trash`, `snoozed`, `scheduled`, `favorites`, `unread`, `shared`, `all`, or one of the member's own folders |
+| `/mail/autosvar` | Auto-reply and mail settings (signature, undo time, conversations, permission for sending later) |
+| `/mail/tillatelse` | Where the login provider sends the member back after they give the permission for sending later |
 | `/auth/callback` | OIDC redirect target |
 
 ## Tech stack
@@ -67,8 +74,9 @@ page, and hosts a small collection of browser games with a shared leaderboard.
 ```
 Browser (teb-app)
   ├── auth.tebonsma.no   OIDC login (Authelia)
-  └── api.tebonsma.no    Profile and leaderboard API (tebonsma-api)
-                           └── LLDAP   member directory
+  └── api.tebonsma.no    Profile, leaderboard, feed and mail API (tebonsma-api)
+                           ├── LLDAP              member directory
+                           └── mail.tebonsma.no   members' mailboxes (IMAP, SMTP, ManageSieve)
 ```
 
 - **Frontend:** this repository. The app lives in [`teb-app/`](teb-app).
@@ -77,6 +85,10 @@ Browser (teb-app)
   developed in a separate repository.
 - **Sign-in:** the site is an OIDC public client (`tebonsma-web`) using the authorization
   code flow. Tokens are sent to the API as `Authorization: Bearer <token>`.
+- **Mail:** the browser never talks to the mail server. The API opens the member's mailbox with
+  the member's own access token and passes mail to the site as JSON. Mail from others is cleaned
+  by the API and shown in a sandboxed frame. See the `tebonsma-api` README for how it works and
+  what the mail server needs.
 
 ## Getting started
 
@@ -150,7 +162,8 @@ Clicking "Logg inn" opens a page where you pick a test user. There are no passwo
 | `admin` | `tebonsma`, `lldap_admin` | What administrators see |
 
 The mock login server listens on `http://localhost:9091` and the API on
-`http://localhost:8080`. See the `tebonsma-api` README for details.
+`http://localhost:8787`. Mail works against the mock too: both users start with a few mails, and
+mail between them is delivered, so there is no mail server to set up. See the `tebonsma-api` README for details.
 
 ## Project structure
 
@@ -173,9 +186,11 @@ Tebonsma.no/
     │   ├── account/              # Profile context and provider
     │   ├── auth/                 # OIDC user manager, auth context and provider
     │   ├── components/           # Shared UI (Header, Footer, Calendar, MembersGrid, ...)
+    │   │   ├── feed/             # The feed, and the notification bell and its polling
+    │   │   ├── mail/             # Webmail: sidebar, list, conversation view, composer and editor, menus
     │   │   ├── fancy/            # Animated layout blocks
     │   │   └── reactbits/        # Animated card components
-    │   ├── lib/                  # API client, games, events, members and utilities
+    │   ├── lib/                  # API client, games, events, members, mail and utilities
     │   ├── pages/                # Route components
     │   ├── App.tsx               # Routes
     │   ├── globals.css           # Tailwind theme (brand colors, fonts) and global styles
