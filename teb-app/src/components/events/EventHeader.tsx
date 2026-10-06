@@ -167,6 +167,18 @@ const EventHeader = ({ postId, body, event, token, onChange }: EventHeaderProps)
         )}
       </div>
 
+      {event.organizers.length > 0 && (
+        <p className="text-sm text-white/60">
+          Med arrangører:{' '}
+          {event.organizers.map((member, i) => (
+            <span key={member.id}>
+              {i > 0 && ', '}
+              <MemberLink member={member}>{member.name}</MemberLink>
+            </span>
+          ))}
+        </p>
+      )}
+
       {status !== 'past' && <AddToCalendar post={{ id: postId, body, event }} />}
 
       {event.rsvp && token && (

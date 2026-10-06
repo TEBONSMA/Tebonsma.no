@@ -42,11 +42,14 @@ export interface EventDetails {
   endsAt: string | null
   // Whether members can bet on it on TebBet
   betting: boolean
+  // Members who may edit the event along with its author
+  organizers: FeedMember[]
   // Only on closed events, and only for members
   rsvp: Rsvp | null
 }
 
-export type EventInput = Omit<EventDetails, 'rsvp'>
+// Organizers are sent as member ids, and left out when only the author may change them
+export type EventInput = Omit<EventDetails, 'rsvp' | 'organizers'> & { organizers?: string[] }
 
 export interface Post {
   id: string
@@ -63,6 +66,8 @@ export interface Post {
   liked: boolean
   commentCount: number
   mine: boolean
+  // The author, and the organizers of an event
+  canEdit: boolean
   reported: boolean
 }
 
@@ -170,6 +175,8 @@ export const listPosts = (token: Token, sort: Sort, offset = 0, limit = 10) =>
 
 export const getPost = (token: Token, id: string) =>
   asVisitorIfExpired(token, t => apiFetch<Post>(`/feed/posts/${encodeURIComponent(id)}`, t))
+
+export const listMembers = (token: string) => apiFetch<FeedMember[]>('/members', token)
 
 export const createPost = (token: string, input: PostInput) => apiFetch<Post>('/feed/posts', token, json('POST', input))
 

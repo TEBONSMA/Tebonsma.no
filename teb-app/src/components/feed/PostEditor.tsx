@@ -7,10 +7,12 @@ import {
   MAX_ATTACHMENTS,
   MAX_POST_LENGTH,
   updatePost,
+  type FeedMember,
   type Post,
   type Visibility,
 } from '../../lib/feed'
 import AttachmentChips from './AttachmentChips'
+import OrganizerPicker from './OrganizerPicker'
 import PollFields from './PollFields'
 import { ACTION, BUTTON_GHOST, BUTTON_PRIMARY, ERROR_TEXT, INPUT } from './styles'
 import { useAttachments } from './useAttachments'
@@ -76,6 +78,9 @@ const PostEditor = ({ token, post, startAsEvent = false, onSaved, onCancel }: Po
   const [pollOptions, setPollOptions] = useState<string[] | null>(null)
   const [pollQuestion, setPollQuestion] = useState('')
   const [event, setEvent] = useState<EventFields | null>(eventFieldsOf(post) ?? (startAsEvent ? NEW_EVENT : null))
+  const [organizers, setOrganizers] = useState<FeedMember[]>(post?.event?.organizers ?? [])
+  // Only the one who made the event shares it with others
+  const canShare = !post || post.mine
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -112,6 +117,7 @@ const PostEditor = ({ token, post, startAsEvent = false, onSaved, onCancel }: Po
           startsAt: fromLocalInput(event.startsAt),
           endsAt: fromLocalInput(event.endsAt),
           betting: event.betting,
+          ...(canShare && { organizers: organizers.map(member => member.id) }),
         },
       }),
     }
@@ -125,6 +131,7 @@ const PostEditor = ({ token, post, startAsEvent = false, onSaved, onCancel }: Po
         setPollOptions(null)
         setPollQuestion('')
         setEvent(startAsEvent ? NEW_EVENT : null)
+        setOrganizers([])
       }
     } catch (err) {
       setError(errorMessage(err))
@@ -189,6 +196,13 @@ const PostEditor = ({ token, post, startAsEvent = false, onSaved, onCancel }: Po
             placeholder="Hvor? (valgfritt)"
             aria-label="Sted"
           />
+          {canShare ? (
+            <OrganizerPicker token={token} selected={organizers} onChange={setOrganizers} />
+          ) : (
+            organizers.length > 0 && (
+              <p className="text-xs text-white/50">Arrangører: {organizers.map(member => member.name).join(', ')}</p>
+            )
+          )}
           <label className="flex items-start gap-2.5 py-1 text-sm text-white/80">
             <input
               type="checkbox"
