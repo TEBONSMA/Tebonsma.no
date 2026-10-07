@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Check, Clock, MapPin, X } from 'lucide-react'
+import { Check, Clock, HelpCircle, MapPin, X } from 'lucide-react'
 import Avatar from '../Avatar'
 import MemberLink from '../MemberLink'
 import { cn } from '../../lib/utils'
@@ -22,6 +22,7 @@ import { useCountdown } from './useCountdown'
 
 const ANSWERS = [
   { value: 'yes', label: 'Kommer', Icon: Check },
+  { value: 'maybe', label: 'Kommer kanskje', Icon: HelpCircle },
   { value: 'no', label: 'Kommer ikke', Icon: X },
 ] as const
 
@@ -99,7 +100,7 @@ function SignUp({ postId, rsvp, closed, token, onChange }: SignUpProps) {
       </div>
 
       {open && answered && (
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid gap-3 sm:grid-cols-3">
           {ANSWERS.map(({ value, label }) => (
             <div key={value}>
               <p className="pb-1 text-xs font-semibold uppercase tracking-wider text-white/40">
