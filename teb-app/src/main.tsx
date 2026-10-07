@@ -9,6 +9,8 @@ import { userManager } from './auth/userManager'
 if (window.parent !== window && window.location.pathname === '/auth/callback') {
   void userManager.signinSilentCallback()
 } else {
+  // Shows push notifications (public/sw.js)
+  if ('serviceWorker' in navigator) void navigator.serviceWorker.register('/sw.js')
   createRoot(document.getElementById('root')!).render(
     <StrictMode>
       <App />
