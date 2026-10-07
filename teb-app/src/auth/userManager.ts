@@ -15,8 +15,12 @@ export const userManager = new UserManager({
   authority: AUTHORITY,
   client_id: 'tebonsma-web',
   redirect_uri: `${window.location.origin}/auth/callback`,
+  // A silent login comes back to the same page, inside a hidden frame (see main.tsx)
+  silent_redirect_uri: `${window.location.origin}/auth/callback`,
   response_type: 'code',
-  scope: 'openid profile email groups offline_access',
+  // No offline_access: Authelia asks for consent on every login that requests it. The login is
+  // renewed in a hidden frame instead, for as long as Authelia's own session lasts.
+  scope: 'openid profile email groups',
   // Authelia leaves name, email and groups out of the ID token; they come from userinfo
   loadUserInfo: true,
   userStore: new WebStorageStateStore({ store: window.localStorage }),
