@@ -26,10 +26,11 @@ export interface Poll {
   myVote: string | null
 }
 
-export type Answer = 'yes' | 'no'
+export type Answer = 'yes' | 'maybe' | 'no'
 
 export interface Rsvp {
   yes: number
+  maybe: number
   no: number
   mine: Answer | null
 }
