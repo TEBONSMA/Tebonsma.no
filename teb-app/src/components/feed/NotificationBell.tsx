@@ -109,7 +109,7 @@ const NotificationBell = () => {
               ))}
             </ul>
           )}
-          <PushSetting token={token} />
+          <PushSetting token={token} onLeave={() => setOpen(false)} />
         </div>
       )}
     </div>

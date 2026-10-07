@@ -7,6 +7,7 @@ const navLinks = [
   { label: 'Spill', href: '/games' },
   { label: 'Om oss', href: '/about' },
   { label: 'Kontakt', href: '/contact' },
+  { label: 'Installer appen', href: '/app' },
 ]
 
 const Footer = () => {

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { errorMessage } from '../../lib/feed'
 import { pushState, turnOffPush, turnOnPush, type PushState } from '../../lib/push'
 import { ERROR_TEXT } from './styles'
@@ -11,7 +12,7 @@ const TEXT: Record<Exclude<PushState, 'unsupported'>, string> = {
 }
 
 // Push notifications on this device, at the bottom of the bell's menu
-const PushSetting = ({ token }: { token: string }) => {
+const PushSetting = ({ token, onLeave }: { token: string; onLeave: () => void }) => {
   const [state, setState] = useState<PushState | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -54,6 +55,11 @@ const PushSetting = ({ token }: { token: string }) => {
           </button>
         )}
       </div>
+      {(state === 'install' || state === 'off') && (
+        <Link to="/app" onClick={onLeave} className="mt-1 inline-block text-xs text-teb-orange hover:underline">
+          Slik installerer du appen
+        </Link>
+      )}
       {error && <p className={`mt-1 ${ERROR_TEXT}`}>{error}</p>}
     </div>
   )
