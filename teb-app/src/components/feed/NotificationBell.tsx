@@ -7,6 +7,7 @@ import { timeAgo, type Notification } from '../../lib/feed'
 import { MENU } from './styles'
 import { useDismiss } from './useDismiss'
 import { useNotifications } from './NotificationsContext'
+import PushSetting from './PushSetting'
 
 const TEXT: Record<Notification['kind'], string> = {
   comment: 'kommenterte innlegget ditt',
@@ -108,6 +109,7 @@ const NotificationBell = () => {
               ))}
             </ul>
           )}
+          <PushSetting token={token} onLeave={() => setOpen(false)} />
         </div>
       )}
     </div>

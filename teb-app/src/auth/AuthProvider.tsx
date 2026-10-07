@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import type { User } from 'oidc-client-ts'
 import { AuthContext } from './AuthContext'
+import { renewPush, turnOffPush } from '../lib/push'
 import { AUTHORITY, userManager } from './userManager'
 
 const login = () => {
@@ -25,6 +26,9 @@ const renew = () =>
     }))
 
 const logout = async () => {
+  // Whoever uses this device next shouldn't get this member's notifications
+  const current = await userManager.getUser()
+  if (current) await turnOffPush(current.access_token).catch(() => {})
   try {
     await userManager.revokeTokens()
   } catch {
@@ -46,6 +50,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!active) return
       setUser(current)
       setIsLoading(false)
+      if (current) void renewPush(current.access_token)
     })
 
     const onLoaded = (loaded: User) => setUser(loaded)
