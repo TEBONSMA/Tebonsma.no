@@ -169,9 +169,12 @@ export async function asVisitorIfExpired<T>(token: Token, read: (token: Token) =
   }
 }
 
-export const listPosts = (token: Token, sort: Sort, offset = 0, limit = 10) =>
+export const listPosts = (token: Token, sort: Sort, offset = 0, limit = 10, search = '') =>
   asVisitorIfExpired(token, t =>
-    apiFetch<{ posts: Post[]; nextOffset: number | null }>(`/feed/posts?sort=${sort}&offset=${offset}&limit=${limit}`, t),
+    apiFetch<{ posts: Post[]; nextOffset: number | null }>(
+      `/feed/posts?sort=${sort}&offset=${offset}&limit=${limit}${search ? `&q=${encodeURIComponent(search)}` : ''}`,
+      t,
+    ),
   )
 
 export const getPost = (token: Token, id: string) =>
