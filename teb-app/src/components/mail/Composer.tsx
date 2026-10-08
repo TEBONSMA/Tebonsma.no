@@ -279,7 +279,7 @@ const Composer = ({ token, seed, members, onClose, onSent, onScheduled }: Compos
             />
           </div>
 
-          <RichEditor bare showToolbar={showFormatting} initialHtml={html} onChange={setHtml} />
+          <RichEditor bare token={token} showToolbar={showFormatting} initialHtml={html} onChange={setHtml} />
 
           {(files.attachments.length > 0 || files.uploading > 0 || files.error) && (
             <div className="shrink-0 space-y-1 border-t border-white/10 px-4 py-2">

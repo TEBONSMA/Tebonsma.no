@@ -1,10 +1,10 @@
-import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowLeft, Download, Trash2 } from 'lucide-react'
-import { errorMessage, formatDate, formatSize } from '../../lib/feed'
-import { downloadSharedAttachment, senderName, type MailAddress, type SharedMail } from '../../lib/mail'
+import { ArrowLeft, Trash2 } from 'lucide-react'
+import { formatDate } from '../../lib/feed'
+import { fetchSharedAttachment, senderName, type MailAddress, type SharedMail } from '../../lib/mail'
 import Avatar from '../Avatar'
-import { ACTION, CARD, ERROR_TEXT } from '../feed/styles'
+import { ACTION, CARD } from '../feed/styles'
+import MailAttachments from './MailAttachments'
 import MailFrame from './MailFrame'
 
 const people = (list: MailAddress[]) => list.map(a => (a.name ? `${a.name} <${a.address}>` : a.address)).join(', ')
@@ -19,8 +19,6 @@ interface SharedViewProps {
 
 // A mail another member shared: a copy kept by the site, so it can be read and downloaded but not answered
 const SharedView = ({ token, mail, search, busy, onDelete }: SharedViewProps) => {
-  const [error, setError] = useState<string | null>(null)
-
   return (
     <article className="space-y-4 p-4">
       <Link to={`/mail/shared${search}`} className="inline-flex items-center gap-1.5 text-sm text-white/60 hover:text-white lg:hidden">
@@ -59,30 +57,7 @@ const SharedView = ({ token, mail, search, busy, onDelete }: SharedViewProps) =>
       <MailFrame html={mail.html} allowImages={false} title={mail.subject || 'Delt mail'} />
 
       {mail.attachments.length > 0 && (
-        <section aria-label="Vedlegg" className="space-y-2">
-          <h3 className="text-sm font-semibold text-white/80">Vedlegg</h3>
-          <ul className="flex flex-wrap gap-2">
-            {mail.attachments.map(attachment => (
-              <li key={attachment.n}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setError(null)
-                    downloadSharedAttachment(token, mail.id, attachment).catch(err => setError(errorMessage(err)))
-                  }}
-                  className="flex items-center gap-2 rounded-md border border-white/10 bg-white/5 px-3 py-2 text-left text-sm cursor-pointer transition-colors hover:border-white/20"
-                >
-                  <Download size={16} aria-hidden="true" className="shrink-0 text-white/50" />
-                  <span className="min-w-0">
-                    <span className="block max-w-48 truncate text-white/90">{attachment.name}</span>
-                    <span className="block text-xs text-white/50">{formatSize(attachment.size)}</span>
-                  </span>
-                </button>
-              </li>
-            ))}
-          </ul>
-          {error && <p className={ERROR_TEXT}>{error}</p>}
-        </section>
+        <MailAttachments attachments={mail.attachments} load={attachment => fetchSharedAttachment(token, mail.id, attachment)} />
       )}
     </article>
   )

@@ -8,9 +8,10 @@ interface MailFrameProps {
 }
 
 const BASE_CSS = `
-  html, body { margin: 0; padding: 0; }
-  body { padding: 16px; background: #fff; color: #111; font: 15px/1.5 system-ui, sans-serif; overflow-wrap: anywhere; }
-  img { max-width: 100%; height: auto; }
+  html { filter: invert(1) hue-rotate(180deg); }
+  html, body { margin: 0; padding: 0; background: transparent; }
+  body { padding: 4px 0; color: #111; font: 15px/1.5 system-ui, sans-serif; overflow-wrap: anywhere; }
+  img, video { max-width: 100%; height: auto; filter: invert(1) hue-rotate(180deg); }
   table { max-width: 100%; }
   a { color: #0b57d0; }
   blockquote { margin: 8px 0; padding-left: 12px; border-left: 3px solid #ccc; color: #444; }
@@ -40,7 +41,7 @@ const MailFrame = ({ html, allowImages, title }: MailFrameProps) => {
       new ResizeObserver(send).observe(document.body)
       addEventListener('load', send)
     `
-    return `<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="${policy}"><base target="_blank"><style>${BASE_CSS}</style></head><body>${html}<script nonce="${nonce}">${report}</script></body></html>`
+    return `<!doctype html><html><head><meta name="color-scheme" content="light"><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="${policy}"><base target="_blank"><style>html{background:transparent}${BASE_CSS}</style></head><body>${html}<script nonce="${nonce}">${report}</script></body></html>`
   }, [html, allowImages, nonce])
 
   useEffect(() => {
@@ -60,7 +61,7 @@ const MailFrame = ({ html, allowImages, title }: MailFrameProps) => {
       srcDoc={srcDoc}
       sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox"
       referrerPolicy="no-referrer"
-      className="block w-full rounded-md bg-white"
+      className="block w-full bg-transparent"
       style={{ height }}
     />
   )

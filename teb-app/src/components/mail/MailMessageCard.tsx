@@ -1,9 +1,9 @@
 import { useState } from 'react'
-import { Download, ImageOff, Share2 } from 'lucide-react'
-import { errorMessage, formatDate, formatSize } from '../../lib/feed'
-import { downloadMailAttachment, senderName, type MailAddress, type MailSummary } from '../../lib/mail'
-import { cn } from '../../lib/utils'
-import { ACTION, BUTTON_GHOST, CARD, ERROR_TEXT } from '../feed/styles'
+import { ImageOff, Share2 } from 'lucide-react'
+import { formatDate } from '../../lib/feed'
+import { fetchMailAttachment, senderName, type MailAddress, type MailSummary } from '../../lib/mail'
+import { ACTION, BUTTON_GHOST, ERROR_TEXT } from '../feed/styles'
+import MailAttachments from './MailAttachments'
 import MailFrame from './MailFrame'
 import { useMessageBody } from './useMail'
 
@@ -22,12 +22,11 @@ interface MailMessageCardProps {
 const MailMessageCard = ({ token, mail, defaultOpen, onShare }: MailMessageCardProps) => {
   const [open, setOpen] = useState(defaultOpen)
   const [images, setImages] = useState(false)
-  const [downloadError, setDownloadError] = useState<string | null>(null)
   const body = useMessageBody(mail.id, open, images)
   const message = body.message
 
   return (
-    <section className={cn(CARD, 'overflow-hidden')}>
+    <section className="overflow-hidden rounded-lg bg-white/[0.03]">
       <button
         type="button"
         onClick={() => setOpen(o => !o)}
@@ -74,30 +73,7 @@ const MailMessageCard = ({ token, mail, defaultOpen, onShare }: MailMessageCardP
               <MailFrame html={message.html} allowImages={images} title={message.subject || 'Mail'} />
 
               {message.attachments.length > 0 && (
-                <section aria-label="Vedlegg" className="space-y-2">
-                  <h3 className="text-sm font-semibold text-white/80">Vedlegg</h3>
-                  <ul className="flex flex-wrap gap-2">
-                    {message.attachments.map(attachment => (
-                      <li key={attachment.n}>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setDownloadError(null)
-                            downloadMailAttachment(token, message.id, attachment).catch(err => setDownloadError(errorMessage(err)))
-                          }}
-                          className="flex items-center gap-2 rounded-md border border-white/10 bg-white/5 px-3 py-2 text-left text-sm cursor-pointer transition-colors hover:border-white/20"
-                        >
-                          <Download size={16} aria-hidden="true" className="shrink-0 text-white/50" />
-                          <span className="min-w-0">
-                            <span className="block max-w-48 truncate text-white/90">{attachment.name}</span>
-                            <span className="block text-xs text-white/50">{formatSize(attachment.size)}</span>
-                          </span>
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                  {downloadError && <p className={ERROR_TEXT}>{downloadError}</p>}
-                </section>
+                <MailAttachments attachments={message.attachments} load={attachment => fetchMailAttachment(token, message.id, attachment)} />
               )}
             </>
           )}

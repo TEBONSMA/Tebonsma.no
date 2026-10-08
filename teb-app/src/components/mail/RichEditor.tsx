@@ -1,6 +1,9 @@
-import { EditorContent, useEditor, useEditorState } from '@tiptap/react'
+import { useRef } from 'react'
+import { EditorContent, type Editor, Node, mergeAttributes, useEditor, useEditorState } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import { Bold, Heading2, Italic, Link2, List, ListOrdered, Quote, RemoveFormatting, Strikethrough, Underline, type LucideIcon } from 'lucide-react'
+import { apiFetchBlob } from '../../lib/api'
+import { uploadMailFile } from '../../lib/mail'
 import { cn } from '../../lib/utils'
 
 interface RichEditorProps {
@@ -10,7 +13,52 @@ interface RichEditorProps {
   // Without a frame, filling the space it is given, with the formatting buttons under the text and only when asked for
   bare?: boolean
   showToolbar?: boolean
+  // Lets pictures be pasted or dropped into the text; they are uploaded with this login
+  token?: string
 }
+
+const MAX_PICTURE_BYTES = 10 * 1024 * 1024
+const PICTURE = /^image\/(png|jpe?g|gif|webp)$/
+
+// Where each uploaded picture can be shown from while the mail is written
+const shown = new Map<string, string>()
+
+// A picture in the text. In the mail it is <img src="cid:upload-id">, which the API sends along
+// as part of the mail; here it is shown from the upload itself.
+const createPicture = (token: string) =>
+  Node.create({
+    name: 'picture',
+    group: 'block',
+    atom: true,
+    draggable: true,
+    addAttributes: () => ({ id: { default: '' } }),
+    parseHTML: () => [
+      {
+        tag: 'img[src^="cid:"]',
+        getAttrs: el => ({ id: (el as HTMLElement).getAttribute('src')!.slice(4) }),
+      },
+    ],
+    renderHTML: ({ HTMLAttributes }) => ['img', mergeAttributes({ src: `cid:${HTMLAttributes.id}`, alt: '' })],
+    addNodeView:
+      () =>
+      ({ node }) => {
+        const img = document.createElement('img')
+        img.alt = ''
+        img.className = 'my-2 block max-h-96 max-w-full rounded-md'
+        const id = node.attrs.id as string
+        const known = shown.get(id)
+        if (known) img.src = known
+        else
+          apiFetchBlob(`/mail/uploads/${id}`, token)
+            .then(blob => {
+              const url = URL.createObjectURL(blob)
+              shown.set(id, url)
+              img.src = url
+            })
+            .catch(() => {})
+        return { dom: img }
+      },
+  })
 
 interface ToolProps {
   label: string
@@ -38,9 +86,26 @@ const Tool = ({ label, icon: Icon, active, onClick }: ToolProps) => (
 )
 
 // Mail is written with simple formatting only: what the API lets through when the mail is sent
-const RichEditor = ({ initialHtml, onChange, bare = false, showToolbar = true }: RichEditorProps) => {
+const RichEditor = ({ initialHtml, onChange, bare = false, showToolbar = true, token }: RichEditorProps) => {
+  const addPictures = (files: File[]) => {
+    for (const file of files) {
+      if (file.size > MAX_PICTURE_BYTES) {
+        window.alert(`Bildet «${file.name}» er større enn 10 MB`)
+        continue
+      }
+      uploadMailFile(token!, file)
+        .then(upload => {
+          shown.set(upload.id, URL.createObjectURL(file))
+          editorRef.current?.chain().focus().insertContent({ type: 'picture', attrs: { id: upload.id } }).run()
+        })
+        .catch(err => window.alert(err instanceof Error ? err.message : 'Kunne ikke laste opp bildet'))
+    }
+  }
+  const editorRef = useRef<Editor | null>(null)
+
   const editor = useEditor({
     extensions: [
+      ...(token ? [createPicture(token)] : []),
       StarterKit.configure({
         heading: { levels: [2] },
         // Nothing the API would remove again
@@ -51,8 +116,23 @@ const RichEditor = ({ initialHtml, onChange, bare = false, showToolbar = true }:
       }),
     ],
     content: initialHtml,
+    onCreate: ({ editor: created }) => {
+      editorRef.current = created
+    },
     onUpdate: ({ editor: updated }) => onChange(updated.getHTML()),
     editorProps: {
+      handlePaste: (_view, event) => {
+        const pictures = [...(event.clipboardData?.files ?? [])].filter(f => PICTURE.test(f.type))
+        if (!token || pictures.length === 0) return false
+        addPictures(pictures)
+        return true
+      },
+      handleDrop: (_view, event) => {
+        const pictures = [...(event.dataTransfer?.files ?? [])].filter(f => PICTURE.test(f.type))
+        if (!token || pictures.length === 0) return false
+        addPictures(pictures)
+        return true
+      },
       attributes: {
         'aria-label': 'Innhold i mailen',
         class: `${bare ? 'min-h-40 px-4 py-3' : 'min-h-48 max-h-[50vh] overflow-y-auto px-3 py-2'} text-sm text-white outline-none [&_a]:text-teb-orange [&_a]:underline [&_blockquote]:border-l-2 [&_blockquote]:border-white/20 [&_blockquote]:pl-3 [&_blockquote]:text-white/60 [&_h2]:text-lg [&_h2]:font-semibold [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:my-1 [&_ul]:list-disc [&_ul]:pl-5`,
