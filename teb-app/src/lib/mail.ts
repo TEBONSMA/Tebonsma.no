@@ -446,6 +446,9 @@ export const deleteShared = (token: string, id: string) => apiFetch<unknown>(`/m
 
 export const deleteSharedMany = (token: string, ids: string[]) => apiFetch<unknown>('/mail/shared/delete', token, json('POST', { ids }))
 
+export const fetchSharedAttachment = (token: string, id: string, attachment: MailAttachment) =>
+  apiFetchBlob(`/mail/shared/${encodeURIComponent(id)}/attachments/${attachment.n}`, token)
+
 export async function downloadSharedAttachment(token: string, id: string, attachment: MailAttachment) {
   const link = document.createElement('a')
   link.download = attachment.name
