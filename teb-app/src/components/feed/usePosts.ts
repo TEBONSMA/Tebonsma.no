@@ -10,8 +10,9 @@ interface Loaded {
 }
 
 // The feed in the chosen order, a page at a time. Members get every post, visitors the
-// public ones, so the list is fetched again when someone logs in or out.
-export function usePosts(sort: Sort, pageSize: number) {
+// public ones, so the list is fetched again when someone logs in or out. With a search,
+// only the posts that match it.
+export function usePosts(sort: Sort, pageSize: number, search = '') {
   const { user, isLoading } = useAuth()
   const token = user?.access_token ?? null
   const [attempt, setAttempt] = useState(0)
@@ -20,13 +21,13 @@ export function usePosts(sort: Sort, pageSize: number) {
 
   // What the list on screen was fetched for. A renewed login keeps the key, so the list
   // stays up while it is fetched again.
-  const key = `${token ? 'member' : 'visitor'}:${sort}:${attempt}`
+  const key = `${token ? 'member' : 'visitor'}:${sort}:${search}:${attempt}`
   const current = loaded?.key === key ? loaded : null
 
   useEffect(() => {
     if (isLoading) return
     let active = true
-    listPosts(token, sort, 0, pageSize)
+    listPosts(token, sort, 0, pageSize, search)
       .then(page => {
         if (active) setLoaded({ key, posts: page.posts, hasMore: page.nextOffset !== null, error: null })
       })
@@ -36,7 +37,7 @@ export function usePosts(sort: Sort, pageSize: number) {
     return () => {
       active = false
     }
-  }, [isLoading, token, sort, pageSize, key])
+  }, [isLoading, token, sort, pageSize, search, key])
 
   const update = (change: (posts: Post[]) => Post[]) =>
     setLoaded(state => (state?.key === key ? { ...state, posts: change(state.posts) } : state))
@@ -46,7 +47,7 @@ export function usePosts(sort: Sort, pageSize: number) {
     setLoadingMore(true)
     // Posts written or deleted here are already in the list, so its length is how far the
     // server has been read. A post someone else wrote meanwhile can come twice; it is skipped.
-    listPosts(token, sort, current.posts.length, pageSize)
+    listPosts(token, sort, current.posts.length, pageSize, search)
       .then(page =>
         setLoaded(state =>
           state?.key === key
