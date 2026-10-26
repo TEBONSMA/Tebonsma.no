@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { LogIn, LogOut, User, UserCog } from 'lucide-react'
+import { LogIn, LogOut, ScrollText, User, UserCog } from 'lucide-react'
 import { useProfile } from '../account/ProfileContext'
 import { useAuth } from '../auth/AuthContext'
 import { displayName } from '../auth/profile'
@@ -46,6 +46,12 @@ const AuthMenuItems = () => {
         <Link to="/konto" className={itemClasses}>
           <UserCog size={18} aria-hidden="true" />
           Min konto
+        </Link>
+      </li>
+      <li>
+        <Link to="/vedtekter" className={itemClasses}>
+          <ScrollText size={18} aria-hidden="true" />
+          Vedtekter
         </Link>
       </li>
       <li>

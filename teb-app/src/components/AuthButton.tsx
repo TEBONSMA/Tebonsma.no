@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ChevronDown, LogIn, LogOut, User, UserCog } from 'lucide-react'
+import { ChevronDown, LogIn, LogOut, ScrollText, User, UserCog } from 'lucide-react'
 import { useProfile } from '../account/ProfileContext'
 import { useAuth } from '../auth/AuthContext'
 import { displayName } from '../auth/profile'
@@ -105,6 +105,15 @@ const AuthButton = () => {
             >
               <UserCog size={18} aria-hidden="true" />
               Min konto
+            </Link>
+            <Link
+              role="menuitem"
+              to="/vedtekter"
+              className={menuItemClasses}
+              onClick={() => setOpen(false)}
+            >
+              <ScrollText size={18} aria-hidden="true" />
+              Vedtekter
             </Link>
             <button
               type="button"

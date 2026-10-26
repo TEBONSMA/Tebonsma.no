@@ -2,6 +2,9 @@
 export const CARD = 'rounded-lg border border-white/10 bg-white/[0.03]'
 export const INPUT =
   'w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder-white/30 outline-none transition-colors focus:border-teb-orange'
+// The list a select opens is drawn by the browser, light unless told otherwise, and the white text
+// would vanish on it
+export const SELECT = `${INPUT} cursor-pointer [color-scheme:dark] [&_option]:bg-neutral-900`
 const BUTTON =
   'inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-semibold cursor-pointer transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
 export const BUTTON_PRIMARY = `${BUTTON} bg-teb-orange text-white hover:bg-teb-orange-light`
