@@ -139,7 +139,7 @@ function List({ token }: { token: string }) {
   const proposals = list.forslag.filter(proposal => proposal.parent === null)
 
   return (
-    <div className="mx-auto mt-8 max-w-3xl space-y-8">
+    <div className="mx-auto mt-5 md:mt-8 max-w-3xl space-y-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="max-w-xl text-sm text-white/60">
           Alle medlemmer kan foreslå endringer i vedtektene. Årsmøtet behandler forslagene som er sendt inn, og endrer vedtektene med 2/3 flertall.

@@ -133,7 +133,7 @@ function Text({ token }: { token: string }) {
 // The whole text, with the table of contents beside it
 function Full({ document, pdf, open }: { document: Document; pdf: string | null; open: Open }) {
   return (
-    <div className="mt-8 grid gap-10 lg:grid-cols-[220px_minmax(0,1fr)]">
+    <div className="mt-5 md:mt-8 grid gap-10 lg:grid-cols-[220px_minmax(0,1fr)]">
       <aside className="lg:sticky lg:top-24 lg:self-start lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto">
         {/* Folded on a phone, so the text comes first; always there beside it on a wide screen */}
         <details className={`${CARD} p-4 lg:hidden`}>

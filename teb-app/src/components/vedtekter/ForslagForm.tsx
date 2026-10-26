@@ -154,7 +154,7 @@ export default function ForslagForm({ document, heading, initial, arsmote, actio
   }
 
   return (
-    <form className="mx-auto mt-8 max-w-3xl space-y-5" onSubmit={event => event.preventDefault()}>
+    <form className="mx-auto mt-5 md:mt-8 max-w-3xl space-y-5" onSubmit={event => event.preventDefault()}>
       <h2 className="text-2xl font-bold text-white">{heading}</h2>
 
       <label className="block space-y-1">

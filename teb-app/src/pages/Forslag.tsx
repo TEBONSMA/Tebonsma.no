@@ -62,7 +62,7 @@ function Detail({ token, number }: { token: string; number: number }) {
   const { can } = proposal
 
   return (
-    <div className="mx-auto mt-8 max-w-3xl space-y-6">
+    <div className="mx-auto mt-5 md:mt-8 max-w-3xl space-y-6">
       <Link to="/vedtekter/forslag" className="inline-flex items-center gap-1 text-sm text-white/60 hover:text-white">
         <ChevronLeft size={16} aria-hidden="true" />
         Alle forslag
