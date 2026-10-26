@@ -93,7 +93,7 @@ export interface Arsmote {
 
 export interface ForslagSummary {
   number: number
-  // The proposal this is an amendment to
+  // The proposal this is a motforslag to
   parent: number | null
   // The one it was a motforslag to, before that was withdrawn; now it stands on its own
   withdrawnParent: number | null
@@ -170,3 +170,115 @@ export function toInput(change: Change): ChangeInput {
   if (change.type === 'slette') return { type: 'slette', target: change.target }
   return { type: 'legge-til', parent: change.parent, after: change.after, title: change.title, text: change.text }
 }
+
+// --- The årsmøte voting on them (the API's /vedtekter/arsmote and /vedtekter/voteringer)
+
+// An option by its place in the list, or a blank vote
+export type Choice = number | 'blank'
+
+export interface Votering {
+  id: string
+  // kontra: forslag a against forslag b; endelig: forslag a against the vedtekter as they are;
+  // opptak: whether forslag a, sent in too late, is taken up; fri: anything else, with its own
+  // question and options
+  kind: 'kontra' | 'endelig' | 'opptak' | 'fri'
+  // "Forslag 3 mot forslag 4", or the question asked
+  title: string
+  // The two proposals, for and against, or as the protocol group wrote them
+  options: string[]
+  a: ForslagSummary | null
+  b: ForslagSummary | null
+  // What is voted on, in full, while it is open
+  changes: { a: Change[]; b: Change[] | null } | null
+  rule: 'flertall' | 'to-tredjedeler' | 'tre-fjerdedeler'
+  // How it is decided, in words
+  required: string
+  // How many were there when it closed
+  present: number | null
+  // likt: a tie, until the protocol group has it voted on again or drawn by lot
+  status: 'åpen' | 'likt' | 'lukket'
+  mine: Choice | null
+  // While it is open, only for the protocol group; for each option, and the blank votes
+  counts: { phone: number[]; hand: number[]; total: number[]; blank: { phone: number; hand: number; total: number } } | null
+  // Votes on phones so far
+  voted: number
+  // The option that won; none when no option got what it needed
+  result: number | null
+  // The options that had the same, most votes
+  tied: number[] | null
+  byLot: boolean
+  // A vote again after a tie, and a tie that was voted on again
+  gjenvalgAv: string | null
+  gjenvalg: boolean
+  openedAt: string
+  closedAt: string | null
+}
+
+// A case on the agenda: proposals to the same paragraphs, or another case the protocol group added
+export interface Sak {
+  // forslag:3 or punkt:<id>, for the order
+  key: string
+  title: string
+  // The id of another case
+  punkt: string | null
+  // A proposal sent in after the deadline must be taken up by 3/4 of those present (§ 3)
+  forslag: (ForslagSummary & { opptak: 'kreves' | 'tatt-opp' | 'ikke-tatt-opp' | null })[]
+  // The vote to hold next: whether a late proposal is taken up, an amendment against its
+  // proposal, competing proposals against each other, or the one left against the vedtekter
+  next: { a: number; b: number | null; opptak: boolean } | null
+  // Being voted on now
+  current: boolean
+  // Nothing left to vote on
+  done: boolean
+}
+
+export interface Live {
+  arsmote: Arsmote | null
+  canManage: boolean
+  present: boolean
+  attendees: FeedMember[]
+  voteringer: Votering[]
+  saker: Sak[]
+}
+
+export const getLive = (token: string) => apiFetch<Live>('/vedtekter/arsmote/live', token)
+
+export const startArsmote = (token: string) => apiFetch<Live>('/vedtekter/arsmote/start', token, json('POST'))
+
+export const endArsmote = (token: string) => apiFetch<Live>('/vedtekter/arsmote/avslutt', token, json('POST'))
+
+export const checkIn = (token: string) => apiFetch<Live>('/vedtekter/arsmote/oppmote', token, json('POST'))
+
+export const checkInMember = (token: string, memberId: string) =>
+  apiFetch<Live>(`/vedtekter/arsmote/oppmote/${memberId}`, token, json('POST'))
+
+export const checkOutMember = (token: string, memberId: string) =>
+  apiFetch<Live>(`/vedtekter/arsmote/oppmote/${memberId}`, token, json('DELETE'))
+
+export const openVotering = (token: string, a: number, b: number | null, opptak = false) =>
+  apiFetch<Live>('/vedtekter/voteringer', token, json('POST', { a, b, opptak }))
+
+export const openFreeVotering = (token: string, title: string, options: string[], rule: Votering['rule'], sak: string | null) =>
+  apiFetch<Live>('/vedtekter/voteringer', token, json('POST', { title, options, rule, sak }))
+
+export const addPunkt = (token: string, title: string) => apiFetch<Live>('/vedtekter/arsmote/saker', token, json('POST', { title }))
+
+export const removePunkt = (token: string, id: string) => apiFetch<Live>(`/vedtekter/arsmote/saker/${id}`, token, json('DELETE'))
+
+export const setAgenda = (token: string, order: string[]) => apiFetch<Live>('/vedtekter/arsmote/saksliste', token, json('PUT', { order }))
+
+export const castVote = (token: string, id: string, choice: Choice) =>
+  apiFetch<Live>(`/vedtekter/voteringer/${id}/stem`, token, json('POST', { choice }))
+
+export const closeVotering = (token: string, id: string, hand: { options: number[]; blank: number }) =>
+  apiFetch<Live>(`/vedtekter/voteringer/${id}/lukk`, token, json('POST', { hand }))
+
+// After a tie: the lot drawn in the room, or drawn by the API
+export const drawLot = (token: string, id: string, option: number | 'tilfeldig') =>
+  apiFetch<Live>(`/vedtekter/voteringer/${id}/loddtrekning`, token, json('POST', { option }))
+
+// After a tie: vote again on the options kept
+export const revote = (token: string, id: string, keep: number[]) => apiFetch<Live>(`/vedtekter/voteringer/${id}/gjenvalg`, token, json('POST', { keep }))
+
+// Where the protocol group writes what was adopted into the vedtekter, after the årsmøte
+export const ADOPT_WORKFLOW = 'https://github.com/TEBONSMA/vedtekter/actions/workflows/arsmote.yml'

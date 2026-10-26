@@ -6,17 +6,27 @@ import { BUTTON_PRIMARY, CARD } from '../feed/styles'
 import { useAuth } from '../../auth/AuthContext'
 
 const TABS = [
-  { key: 'tekst', label: 'Vedtektene', to: '/vedtekter' },
-  { key: 'forslag', label: 'Forslag til endringer', to: '/vedtekter/forslag' },
+  { key: 'tekst', label: 'Vedtektene', short: 'Vedtektene', to: '/vedtekter' },
+  { key: 'forslag', label: 'Forslag til endringer', short: 'Forslag', to: '/vedtekter/forslag' },
+  { key: 'arsmote', label: 'Årsmøte', short: 'Årsmøte', to: '/vedtekter/arsmote' },
 ] as const
 
-// The pages about the vedtekter: for members only, with the text and the proposals as tabs
-export default function VedtekterLayout({ tab, children }: { tab: 'tekst' | 'forslag'; children: (token: string) => ReactNode }) {
+// The pages about the vedtekter: for members only, with the text and the proposals as tabs. A
+// wide page uses more of a computer screen.
+export default function VedtekterLayout({
+  tab,
+  wide = false,
+  children,
+}: {
+  tab: (typeof TABS)[number]['key']
+  wide?: boolean
+  children: (token: string) => ReactNode
+}) {
   const { user, isLoading, login } = useAuth()
   const token = user?.access_token ?? null
 
   return (
-    <Layout mainClassName="w-full max-w-5xl mx-auto px-4 pt-5 pb-12 md:pt-24 md:pb-16">
+    <Layout mainClassName={`w-full ${wide ? 'max-w-7xl' : 'max-w-5xl'} mx-auto px-4 pt-5 pb-12 md:pt-24 md:pb-16`}>
       <div className="flex flex-col items-center gap-4 text-center">
         {/* On a phone the title is enough; the page starts right under the header */}
         <span className="hidden md:block">
@@ -41,11 +51,12 @@ export default function VedtekterLayout({ tab, children }: { tab: 'tekst' | 'for
                 key={item.key}
                 to={item.to}
                 aria-current={item.key === tab ? 'page' : undefined}
-                className={`-mb-px border-b-2 px-4 py-2 text-sm font-semibold transition-colors ${
+                className={`-mb-px border-b-2 px-3 py-2 text-sm font-semibold transition-colors sm:px-4 ${
                   item.key === tab ? 'border-teb-orange text-white' : 'border-transparent text-white/60 hover:text-white'
                 }`}
               >
-                {item.label}
+                <span className="sm:hidden">{item.short}</span>
+                <span className="hidden sm:inline">{item.label}</span>
               </Link>
             ))}
           </nav>

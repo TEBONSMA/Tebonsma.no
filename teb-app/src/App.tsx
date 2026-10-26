@@ -21,6 +21,7 @@ import Vedtekter from './pages/Vedtekter'
 import VedtektForslag from './pages/VedtektForslag'
 import Forslag from './pages/Forslag'
 import { NyttForslag, RedigerForslag } from './pages/ForslagSkjema'
+import Arsmote from './pages/Arsmote'
 import './App.css'
 
 function App() {
@@ -48,6 +49,7 @@ function App() {
               <Route path="/vedtekter/forslag/ny" element={<NyttForslag />} />
               <Route path="/vedtekter/forslag/:number" element={<Forslag />} />
               <Route path="/vedtekter/forslag/:number/rediger" element={<RedigerForslag />} />
+              <Route path="/vedtekter/arsmote" element={<Arsmote />} />
               <Route path="/medlem" element={<Navigate to="/medlem/meg" replace />} />
               <Route path="/medlem/:id" element={<Medlem />} />
               <Route path="/mail" element={<Mail />} />
