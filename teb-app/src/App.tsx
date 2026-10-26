@@ -17,6 +17,7 @@ import MailAutoReply from './pages/MailAutoReply'
 import MailConsent from './pages/MailConsent'
 import Medlem from './pages/Medlem'
 import InstallApp from './pages/InstallApp'
+import Vedtekter from './pages/Vedtekter'
 import './App.css'
 
 function App() {
@@ -39,6 +40,7 @@ function App() {
               <Route path="/feed/:id" element={<FeedPost />} />
               <Route path="/kalender" element={<Kalender />} />
               <Route path="/app" element={<InstallApp />} />
+              <Route path="/vedtekter" element={<Vedtekter />} />
               <Route path="/medlem" element={<Navigate to="/medlem/meg" replace />} />
               <Route path="/medlem/:id" element={<Medlem />} />
               <Route path="/mail" element={<Mail />} />
