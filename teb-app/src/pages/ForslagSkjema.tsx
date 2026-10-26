@@ -54,7 +54,7 @@ function New({ token }: { token: string }) {
   const [params] = useSearchParams()
   const { document, error } = useVedtekter(token)
   const arsmote = useArsmote(token)
-  const amend = Number(params.get('endringsforslag')) || null
+  const amend = Number(params.get('motforslag')) || null
   const [parent, setParent] = useState<Forslag | null>(null)
   const [parentError, setParentError] = useState<string | null>(null)
 
@@ -80,7 +80,7 @@ function New({ token }: { token: string }) {
   return (
     <ForslagForm
       document={document}
-      heading={parent ? `Endringsforslag til forslag ${parent.number}` : 'Nytt forslag til endring av vedtektene'}
+      heading={parent ? `Motforslag til forslag ${parent.number}` : 'Nytt forslag til endring av vedtektene'}
       initial={{ title: parent ? parent.title : '', reason: '', changes: startingChanges(document, params, parent) }}
       arsmote={arsmote}
       actions={[

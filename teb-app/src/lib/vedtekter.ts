@@ -92,6 +92,8 @@ export interface ForslagSummary {
   number: number
   // The proposal this is an amendment to
   parent: number | null
+  // The one it was a motforslag to, before that was withdrawn; now it stands on its own
+  withdrawnParent: number | null
   title: string
   status: Status
   author: FeedMember

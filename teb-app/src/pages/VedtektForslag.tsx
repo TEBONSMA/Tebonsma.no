@@ -46,6 +46,7 @@ function Row({ proposal, amendments }: { proposal: ForslagSummary; amendments: F
           </span>
           <span>{timeAgo(proposal.submittedAt ?? proposal.createdAt)}</span>
           {proposal.late && <span className="text-amber-300">Sendt inn etter fristen</span>}
+          {proposal.withdrawnParent && <span>Var motforslag til forslag {proposal.withdrawnParent}, som er trukket</span>}
           {proposal.comments > 0 && <span>{proposal.comments} kommentarer</span>}
         </div>
       </Link>
@@ -54,7 +55,7 @@ function Row({ proposal, amendments }: { proposal: ForslagSummary; amendments: F
           {amendments.map(amendment => (
             <li key={amendment.number} className="flex items-center gap-2 text-sm">
               <Link to={`/vedtekter/forslag/${amendment.number}`} className="min-w-0 flex-1 truncate text-white/80 hover:underline">
-                Endringsforslag {amendment.number}: {amendment.title}
+                Motforslag {amendment.number}: {amendment.title}
               </Link>
               <StatusBadge status={amendment.status} />
             </li>

@@ -75,10 +75,19 @@ function Detail({ token, number }: { token: string; number: number }) {
               Forslag {proposal.number}
               {proposal.parent && (
                 <>
-                  {' · '}endringsforslag til{' '}
+                  {' · '}motforslag til{' '}
                   <Link to={`/vedtekter/forslag/${proposal.parent}`} className="text-teb-orange hover:underline">
                     forslag {proposal.parent}
                   </Link>
+                </>
+              )}
+              {proposal.withdrawnParent && (
+                <>
+                  {' · '}var motforslag til{' '}
+                  <Link to={`/vedtekter/forslag/${proposal.withdrawnParent}`} className="text-teb-orange hover:underline">
+                    forslag {proposal.withdrawnParent}
+                  </Link>
+                  , som er trukket
                 </>
               )}
             </p>
@@ -126,8 +135,8 @@ function Detail({ token, number }: { token: string; number: number }) {
             </Link>
           )}
           {can.amend && (
-            <Link to={`/vedtekter/forslag/ny?endringsforslag=${number}`} className={BUTTON_GHOST}>
-              Lag endringsforslag
+            <Link to={`/vedtekter/forslag/ny?motforslag=${number}`} className={BUTTON_GHOST}>
+              Lag motforslag
             </Link>
           )}
           {can.withdraw && (
@@ -166,13 +175,14 @@ function Detail({ token, number }: { token: string; number: number }) {
 
       {proposal.amendments.length > 0 && (
         <section className="space-y-2">
-          <h3 className={LABEL}>Endringsforslag</h3>
+          <h3 className={LABEL}>Motforslag</h3>
           <ul className="space-y-2">
             {proposal.amendments.map(amendment => (
               <li key={amendment.number} className={`${CARD} flex items-center gap-3 p-3 text-sm`}>
                 <Link to={`/vedtekter/forslag/${amendment.number}`} className="min-w-0 flex-1 truncate text-white hover:underline">
                   Forslag {amendment.number}: {amendment.title}
                 </Link>
+                {amendment.withdrawnParent && <span className="text-xs text-white/50">Står nå som eget forslag</span>}
                 <span className="text-white/50">{amendment.author.name}</span>
                 <StatusBadge status={amendment.status} />
               </li>
