@@ -4,8 +4,11 @@ import Badge from '../components/Badge'
 import Layout from '../components/Layout'
 import { BUTTON_GHOST, BUTTON_PRIMARY, CARD, ERROR_TEXT } from '../components/feed/styles'
 import { useAuth } from '../auth/AuthContext'
-import { ApiError } from '../lib/api'
-import { getVedtekter, getVedtekterPdf, type Paragraf, type Vedtekter as Document } from '../lib/vedtekter'
+import { ApiError, apiUrl } from '../lib/api'
+import { getPdfLink, getVedtekter, type Paragraf, type Vedtekter as Document } from '../lib/vedtekter'
+
+// The PDF link works for an hour; a new one well before that
+const LINK_REFRESH_MS = 45 * 60 * 1000
 
 const MONTHS = ['januar', 'februar', 'mars', 'april', 'mai', 'juni', 'juli', 'august', 'september', 'oktober', 'november', 'desember']
 
@@ -72,23 +75,21 @@ export default function Vedtekter() {
     }
   }, [token])
 
-  // The PDF needs the login too, so it is fetched here and opened from memory
+  // A link the browser opens like any PDF, renewed while the page is open
   useEffect(() => {
-    if (!token || !document) return
-    let url: string | null = null
+    if (!token) return
     let active = true
-    getVedtekterPdf(token)
-      .then(blob => {
-        if (!active) return
-        url = URL.createObjectURL(blob)
-        setPdf(url)
-      })
-      .catch(() => {})
+    const fetchLink = () =>
+      getPdfLink(token)
+        .then(link => active && setPdf(apiUrl(link.url)))
+        .catch(() => {})
+    void fetchLink()
+    const timer = window.setInterval(fetchLink, LINK_REFRESH_MS)
     return () => {
       active = false
-      if (url) URL.revokeObjectURL(url)
+      window.clearInterval(timer)
     }
-  }, [token, document])
+  }, [token])
 
   // Jump to the paragraph in the address once the text is there
   useEffect(() => {
@@ -139,11 +140,11 @@ export default function Vedtekter() {
               <div className="mt-4 flex flex-wrap gap-2">
                 {pdf ? (
                   <>
-                    <a href={pdf} target="_blank" rel="noreferrer" className={BUTTON_PRIMARY}>
+                    <a href={pdf} target="_blank" rel="noopener" className={BUTTON_PRIMARY}>
                       <FileText size={16} aria-hidden="true" />
                       Åpne PDF
                     </a>
-                    <a href={pdf} download={`Vedtekter ${document.navn}.pdf`} className={BUTTON_GHOST}>
+                    <a href={`${pdf}&last-ned=1`} className={BUTTON_GHOST}>
                       <Download size={16} aria-hidden="true" />
                       Last ned
                     </a>

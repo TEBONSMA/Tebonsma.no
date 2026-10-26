@@ -1,4 +1,4 @@
-import { apiFetch, apiFetchBlob } from './api'
+import { apiFetch } from './api'
 
 // The vedtekter as the vedtekter repo builds them, for members only (the API's /vedtekter)
 export interface Paragraf {
@@ -36,4 +36,5 @@ export interface Vedtekter {
 
 export const getVedtekter = (token: string) => apiFetch<Vedtekter>('/vedtekter', token)
 
-export const getVedtekterPdf = (token: string) => apiFetchBlob('/vedtekter/pdf', token)
+// A link the browser can open like any other PDF, for an hour
+export const getPdfLink = (token: string) => apiFetch<{ url: string; utloper: string }>('/vedtekter/pdf/lenke', token)
