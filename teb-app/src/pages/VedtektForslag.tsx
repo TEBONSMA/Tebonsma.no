@@ -1,20 +1,16 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import Avatar from '../components/Avatar'
-import { BUTTON_GHOST, BUTTON_PRIMARY, CARD, ERROR_TEXT, INPUT } from '../components/feed/styles'
+import { BUTTON_GHOST, BUTTON_PRIMARY, CARD, ERROR_TEXT } from '../components/feed/styles'
+import ArsmoteForm from '../components/vedtekter/ArsmoteForm'
 import StatusBadge from '../components/vedtekter/StatusBadge'
 import VedtekterLayout from '../components/vedtekter/VedtekterLayout'
 import { summaryText } from '../components/vedtekter/changes'
 import { errorMessage, timeAgo } from '../lib/feed'
-import { listForslag, setArsmote, type Arsmote, type ForslagList, type ForslagSummary, type Status } from '../lib/vedtekter'
+import { listForslag, type Arsmote, type ForslagList, type ForslagSummary, type Status } from '../lib/vedtekter'
 
 const longTime = (iso: string) => new Date(iso).toLocaleString('nb', { dateStyle: 'long', timeStyle: 'short' })
 
-// For <input type="datetime-local">, in local time
-const localInput = (iso: string) => {
-  const time = new Date(iso)
-  return new Date(time.getTime() - time.getTimezoneOffset() * 60_000).toISOString().slice(0, 16)
-}
 
 const GROUPS: { title: string; statuses: Status[]; hint?: string }[] = [
   { title: 'Sendt inn', statuses: ['innsendt'], hint: 'Behandles på årsmøtet.' },
@@ -69,21 +65,7 @@ function Row({ proposal, amendments }: { proposal: ForslagSummary; amendments: F
 // The next årsmøte and the deadlines in § 3; the protocol group sets it
 function ArsmoteBox({ token, list, onChanged }: { token: string; list: ForslagList; onChanged: (meeting: Arsmote | null) => void }) {
   const [editing, setEditing] = useState(false)
-  const [title, setTitle] = useState(list.arsmote?.title ?? `Ordinært årsmøte ${new Date().getFullYear()}`)
-  const [startsAt, setStartsAt] = useState(list.arsmote ? localInput(list.arsmote.startsAt) : '')
-  const [error, setError] = useState<string | null>(null)
   const meeting = list.arsmote
-
-  const save = async (event: FormEvent) => {
-    event.preventDefault()
-    setError(null)
-    try {
-      onChanged(await setArsmote(token, title, new Date(startsAt).toISOString()))
-      setEditing(false)
-    } catch (err) {
-      setError(errorMessage(err))
-    }
-  }
 
   return (
     <section className={`${CARD} p-4 text-sm`}>
@@ -101,14 +83,17 @@ function ArsmoteBox({ token, list, onChanged }: { token: string; list: ForslagLi
       )}
       {list.canManage &&
         (editing ? (
-          <form className="mt-3 grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto_auto]" onSubmit={event => void save(event)}>
-            <input className={INPUT} value={title} onChange={event => setTitle(event.target.value)} aria-label="Navn på årsmøtet" maxLength={100} />
-            <input className={INPUT} type="datetime-local" value={startsAt} onChange={event => setStartsAt(event.target.value)} aria-label="Når" required />
-            <button type="submit" className={BUTTON_PRIMARY}>
-              Lagre
-            </button>
-            {error && <p className={`${ERROR_TEXT} sm:col-span-3`}>{error}</p>}
-          </form>
+          <div className="mt-3">
+            <ArsmoteForm
+              token={token}
+              meeting={meeting}
+              onSaved={saved => {
+                onChanged(saved)
+                setEditing(false)
+              }}
+              onCancel={() => setEditing(false)}
+            />
+          </div>
         ) : (
           <button type="button" className={`${BUTTON_GHOST} mt-3`} onClick={() => setEditing(true)}>
             {meeting ? 'Endre årsmøtet' : 'Sett neste årsmøte'}

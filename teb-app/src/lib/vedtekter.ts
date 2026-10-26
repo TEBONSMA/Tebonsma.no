@@ -83,6 +83,9 @@ export interface Arsmote {
   id: string
   title: string
   startsAt: string
+  // Planned until the protocol group starts it; while it goes on, members check in and vote
+  state: 'planlagt' | 'pågår' | 'avsluttet'
+  startedAt: string | null
   // Proposals sent in after this can only be taken up if 3/4 demand it (§ 3)
   forslagFrist: string
   sakslisteFrist: string
