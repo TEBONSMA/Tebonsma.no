@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { BUTTON_GHOST, BUTTON_PRIMARY, CARD, ERROR_TEXT, INPUT } from '../feed/styles'
+import { BUTTON_GHOST, BUTTON_PRIMARY, CARD, ERROR_TEXT, INPUT, SELECT } from '../feed/styles'
 import { errorMessage } from '../../lib/feed'
 import { flatten, type Arsmote, type ChangeInput, type Paragraf, type Vedtekter } from '../../lib/vedtekter'
 import ChangeView from './ChangeView'
@@ -15,7 +15,7 @@ const LABEL = 'block text-xs font-semibold uppercase tracking-wider text-white/5
 
 function ParagraphSelect({ paragraphs, value, onChange, empty }: { paragraphs: Paragraf[]; value: string; onChange: (id: string) => void; empty: string }) {
   return (
-    <select className={INPUT} value={value} onChange={event => onChange(event.target.value)}>
+    <select className={SELECT} value={value} onChange={event => onChange(event.target.value)}>
       <option value="">{empty}</option>
       {flatten(paragraphs).map(({ paragraph }) => (
         <option key={paragraph.id} value={paragraph.id}>
@@ -43,7 +43,7 @@ function ChangeEditor({ document, draft, onChange, onRemove }: ChangeEditorProps
     <div className={`${CARD} space-y-3 p-4`}>
       <div className="flex flex-wrap items-center gap-2">
         <select
-          className={`${INPUT} w-auto`}
+          className={`${SELECT} w-auto`}
           value={draft.type}
           onChange={event => onChange({ ...draftAt(document, event.target.value as Draft['type'], draft.target || draft.anchor), key: draft.key })}
           aria-label="Hva endringen gjør"
