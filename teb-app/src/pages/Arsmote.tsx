@@ -7,7 +7,7 @@ import StatusBadge from '../components/vedtekter/StatusBadge'
 import VedtekterLayout from '../components/vedtekter/VedtekterLayout'
 import ArsmoteForm from '../components/vedtekter/ArsmoteForm'
 import ChangeView from '../components/vedtekter/ChangeView'
-import { showChange, summaryText, type ChangeShown } from '../components/vedtekter/changes'
+import { placements, showChange, summaryText, type ChangeShown } from '../components/vedtekter/changes'
 import { useVedtekter } from '../components/vedtekter/useVedtekter'
 import { errorMessage, listMembers, type FeedMember } from '../lib/feed'
 import {
@@ -69,7 +69,7 @@ function Proposal({ proposal, changes, document }: { proposal: ForslagSummary; c
       {document && changes ? (
         <div className="mt-2 space-y-2">
           {changes.map((change, i) => (
-            <ChangeView key={i} change={showChange(document, change)} />
+            <ChangeView key={i} change={showChange(document, change, placements(document, changes)[i])} />
           ))}
         </div>
       ) : (

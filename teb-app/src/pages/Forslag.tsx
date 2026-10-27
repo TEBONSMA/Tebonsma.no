@@ -6,7 +6,7 @@ import { BUTTON_DANGER, BUTTON_GHOST, BUTTON_PRIMARY, CARD, ERROR_TEXT, INPUT } 
 import ChangeView from '../components/vedtekter/ChangeView'
 import StatusBadge from '../components/vedtekter/StatusBadge'
 import VedtekterLayout from '../components/vedtekter/VedtekterLayout'
-import { showChange } from '../components/vedtekter/changes'
+import { placements, showChange } from '../components/vedtekter/changes'
 import { useVedtekter } from '../components/vedtekter/useVedtekter'
 import { errorMessage, formatDate, timeAgo } from '../lib/feed'
 import {
@@ -116,7 +116,7 @@ function Detail({ token, number }: { token: string; number: number }) {
       <section className="space-y-3">
         <h3 className={LABEL}>Endringer</h3>
         {document ? (
-          proposal.changes.map((change, i) => <ChangeView key={i} change={showChange(document, change)} />)
+          proposal.changes.map((change, i) => <ChangeView key={i} change={showChange(document, change, placements(document, proposal.changes)[i])} />)
         ) : (
           <p className="text-sm text-white/60">Henter vedtektene …</p>
         )}
