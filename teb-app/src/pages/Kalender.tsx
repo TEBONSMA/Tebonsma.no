@@ -3,6 +3,7 @@ import { CalendarPlus, Download } from 'lucide-react'
 import Badge from '../components/Badge'
 import EventCard from '../components/EventCard'
 import Layout from '../components/Layout'
+import SearchBox from '../components/SearchBox'
 import EventCalendar from '../components/events/EventCalendar'
 import SubscribeCalendar from '../components/events/SubscribeCalendar'
 import { useEvents } from '../components/events/useEvents'
@@ -10,7 +11,7 @@ import PostEditor from '../components/feed/PostEditor'
 import { BUTTON_GHOST, BUTTON_PRIMARY, CARD } from '../components/feed/styles'
 import { useAuth } from '../auth/AuthContext'
 import { canExport, downloadEvents } from '../lib/calendarExport'
-import { getEventStatus, type EventPost } from '../lib/events'
+import { getEventStatus, matchesSearch, type EventPost } from '../lib/events'
 
 function EventList({ title, events }: { title: string; events: EventPost[] }) {
   if (events.length === 0) return null
@@ -31,13 +32,15 @@ export default function Kalender() {
   const token = user?.access_token ?? null
   const { events, error, reload } = useEvents()
   const [writing, setWriting] = useState(false)
+  const [search, setSearch] = useState('')
 
   useEffect(() => {
     window.scrollTo({ top: 0 })
   }, [])
 
-  const dated = events?.filter(post => post.event.startsAt) ?? []
-  const exportable = dated.filter(canExport)
+  const matching = events?.filter(post => matchesSearch(post, search)) ?? []
+  const dated = matching.filter(post => post.event.startsAt)
+  const exportable = (events ?? []).filter(post => post.event.startsAt).filter(canExport)
   const isPast = (post: EventPost) => getEventStatus(post.event.startsAt, post.event.endsAt) === 'past'
 
   return (
@@ -93,6 +96,15 @@ export default function Kalender() {
 
       {events && !error && (
         <>
+          <SearchBox
+            id="event-search"
+            label="Søk i arrangementer"
+            placeholder="Søk etter arrangement, sted eller arrangør…"
+            value={search}
+            onChange={setSearch}
+            className="mx-auto max-w-2xl"
+          />
+
           <section className={`${CARD} p-4 md:p-6`}>
             <EventCalendar events={dated} />
             <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-4">
@@ -110,9 +122,12 @@ export default function Kalender() {
           </section>
 
           {events.length === 0 && <p className="py-4 text-center text-white/60">Ingen arrangementer ennå.</p>}
+          {events.length > 0 && matching.length === 0 && (
+            <p className="py-4 text-center text-white/60">Ingen arrangementer matcher «{search.trim()}».</p>
+          )}
 
           <EventList title="Kommende" events={dated.filter(post => !isPast(post))} />
-          <EventList title="Dato kommer" events={events.filter(post => !post.event.startsAt)} />
+          <EventList title="Dato kommer" events={matching.filter(post => !post.event.startsAt)} />
           {/* The latest first */}
           <EventList title="Tidligere" events={dated.filter(isPast).reverse()} />
         </>

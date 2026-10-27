@@ -129,3 +129,13 @@ export function isOnDay(event: EventDetails, day: Date) {
   const dayEnd = new Date(day.getFullYear(), day.getMonth(), day.getDate() + 1)
   return new Date(event.startsAt) < dayEnd && new Date(event.endsAt) >= dayStart
 }
+
+// Whether the event matches every word of the search, in its text, title, place or organizers
+export function matchesSearch(post: EventPost, search: string) {
+  const words = search.toLocaleLowerCase('nb-NO').split(/\s+/).filter(Boolean)
+  if (words.length === 0) return true
+  const text = [post.event.title, post.event.location, post.body, post.author.name, ...post.event.organizers.map(o => o.name)]
+    .join(' ')
+    .toLocaleLowerCase('nb-NO')
+  return words.every(word => text.includes(word))
+}

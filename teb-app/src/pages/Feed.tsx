@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import Badge from '../components/Badge'
+import SearchBox from '../components/SearchBox'
 import Layout from '../components/Layout'
 import PostCard from '../components/feed/PostCard'
 import PostEditor from '../components/feed/PostEditor'
@@ -13,18 +14,29 @@ import { SORTS, type Sort } from '../lib/feed'
 import { cn } from '../lib/utils'
 
 const PAGE_SIZE = 10
+const SEARCH_DELAY_MS = 300
 
 export default function Feed() {
   const { user, isLoading, login } = useAuth()
   const { profile } = useProfile()
   const token = user?.access_token ?? null
   const [sort, setSort] = useState<Sort>('new')
-  const { posts, error, hasMore, loadingMore, loadMore, retry, add, change, remove } = usePosts(sort, PAGE_SIZE)
+  const [query, setQuery] = useState('')
+  const [search, setSearch] = useState('')
+  const { posts, error, hasMore, loadingMore, loadMore, retry, add, change, remove } = usePosts(sort, PAGE_SIZE, search)
   const moreRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     window.scrollTo({ top: 0 })
   }, [])
+
+  // The server is asked once the typing pauses
+  useEffect(() => {
+    const trimmed = query.trim()
+    if (trimmed === search) return
+    const timer = setTimeout(() => setSearch(trimmed), SEARCH_DELAY_MS)
+    return () => clearTimeout(timer)
+  }, [query, search])
 
   // The next page is fetched as the end of the list comes near; the button is there for
   // browsers and keyboards that don't scroll to it
@@ -61,7 +73,15 @@ export default function Feed() {
 
       {token && profile?.groups.includes(ADMIN_GROUP) && <Reports token={token} onPostDeleted={remove} />}
 
-      <div className="flex items-center justify-end gap-2">
+      <div className="flex flex-wrap items-center gap-3">
+        <SearchBox
+          id="feed-search"
+          label="Søk i feeden"
+          placeholder="Søk i innlegg og eventer…"
+          value={query}
+          onChange={setQuery}
+          className="min-w-0 flex-1 basis-56"
+        />
         <label htmlFor="feed-sort" className="shrink-0 text-sm text-white/60">
           Sorter etter
         </label>
@@ -85,7 +105,11 @@ export default function Feed() {
 
       {posts?.length === 0 && !error && (
         <p className="py-8 text-center text-white/60">
-          {token ? 'Ingen innlegg ennå. Skriv det første!' : 'Ingen offentlige innlegg ennå.'}
+          {search
+            ? `Ingen treff på «${search}».`
+            : token
+              ? 'Ingen innlegg ennå. Skriv det første!'
+              : 'Ingen offentlige innlegg ennå.'}
         </p>
       )}
 
