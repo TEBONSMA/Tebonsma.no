@@ -3,7 +3,7 @@ import { BUTTON_GHOST, BUTTON_PRIMARY, CARD, ERROR_TEXT, INPUT, SELECT } from '.
 import { errorMessage } from '../../lib/feed'
 import { flatten, type Arsmote, type ChangeInput, type Paragraf, type Vedtekter } from '../../lib/vedtekter'
 import ChangeView from './ChangeView'
-import { draftAt, inputOf, placement, showDraft, type Draft } from './changes'
+import { draftAt, inputOf, placements, showDraft, type Draft, type Placed } from './changes'
 
 export interface FormValues {
   title: string
@@ -29,15 +29,17 @@ function ParagraphSelect({ paragraphs, value, onChange, empty }: { paragraphs: P
 interface ChangeEditorProps {
   document: Vedtekter
   draft: Draft
+  // Where a new paragraph goes among the others in the proposal
+  placed: Placed | null
   onChange: (draft: Draft) => void
   onRemove: (() => void) | null
 }
 
-function ChangeEditor({ document, draft, onChange, onRemove }: ChangeEditorProps) {
+function ChangeEditor({ document, draft, placed, onChange, onRemove }: ChangeEditorProps) {
   const input = inputOf(document, draft)
   const chosen = draft.type === 'legge-til' || !!draft.target
-  const shown = chosen ? showDraft(document, input) : null
-  const number = input.type === 'legge-til' ? placement(document, input.parent, input.after).number : ''
+  const shown = chosen ? showDraft(document, input, placed) : null
+  const number = placed?.number ?? ''
 
   return (
     <div className={`${CARD} space-y-3 p-4`}>
@@ -137,6 +139,7 @@ export default function ForslagForm({ document, heading, initial, arsmote, actio
   const [drafts, setDrafts] = useState<Draft[]>(initial.changes)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const placed = placements(document, drafts.map(draft => inputOf(document, draft)))
 
   const save = async (submit: boolean) => {
     if (drafts.some(draft => draft.type !== 'legge-til' && !draft.target)) {
@@ -173,6 +176,7 @@ export default function ForslagForm({ document, heading, initial, arsmote, actio
             key={draft.key}
             document={document}
             draft={draft}
+            placed={placed[i]}
             onChange={changed => setDrafts(list => list.map((item, j) => (j === i ? changed : item)))}
             onRemove={drafts.length > 1 ? () => setDrafts(list => list.filter((_, j) => j !== i)) : null}
           />

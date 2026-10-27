@@ -26,15 +26,57 @@ export interface ChangeShown {
 
 const find = (document: Vedtekter, id: string) => flatten(document.paragrafer).find(place => place.paragraph.id === id)?.paragraph
 
-// Where a new paragraph goes and the number it gets, in the vedtekter as they are now
-export function placement(document: Vedtekter, parentId: string | null, afterId: string | null) {
-  const parent = parentId ? (find(document, parentId) ?? null) : null
-  const siblings = parent ? parent.barn : document.paragrafer
-  const index = afterId ? siblings.findIndex(sibling => sibling.id === afterId) + 1 : 0
-  const after = afterId ? find(document, afterId) : null
-  const number = `${parent ? `${parent.nummer}.` : ''}${index + 1}`
-  const where = after ? `etter § ${after.nummer} ${after.tittel}` : parent ? `først i § ${parent.nummer} ${parent.tittel}` : 'først i vedtektene'
-  return { number, where }
+// Where a new paragraph goes and the number it gets
+export interface Placed {
+  number: string
+  // "etter § 17.1 Hovedgruppe"
+  where: string
+}
+
+// The new paragraphs of a proposal put in one after the other, as the vedtekter repo writes them in
+// (apply.py): one placed where an earlier one in the same proposal went, goes after that one. The
+// numbers are those they get once all are in.
+export function placements(document: Vedtekter, changes: (Change | ChangeInput)[]): (Placed | null)[] {
+  const parentOf = new Map(flatten(document.paragrafer).map(({ paragraph, parent }) => [paragraph.id, parent?.id ?? null]))
+  const lists = new Map<string, string[]>()
+  const siblings = (parent: string | null) => {
+    const key = parent ?? ''
+    if (!lists.has(key)) {
+      const paragraph = parent ? find(document, parent) : null
+      lists.set(key, (paragraph ? paragraph.barn : document.paragrafer).map(item => item.id))
+    }
+    return lists.get(key)!
+  }
+  // The new paragraph last put at each place, by the paragraph it goes after, or first under
+  const last = new Map<string, number>()
+  const anchors = changes.map((change, i) => {
+    if (change.type !== 'legge-til') return null
+    const place = change.after ?? `først:${change.parent ?? ''}`
+    const earlier = last.get(place)
+    const anchor = earlier !== undefined ? `ny:${earlier}` : change.after
+    const list = siblings(change.parent)
+    list.splice(anchor ? list.indexOf(anchor) + 1 : 0, 0, `ny:${i}`)
+    parentOf.set(`ny:${i}`, change.parent)
+    last.set(place, i)
+    return { earlier }
+  })
+  const numberOf = (id: string): string => {
+    const parent = parentOf.get(id) ?? null
+    const index = siblings(parent).indexOf(id) + 1
+    return parent ? `${numberOf(parent)}.${index}` : String(index)
+  }
+  return changes.map((change, i) => {
+    const anchor = anchors[i]
+    if (change.type !== 'legge-til' || !anchor) return null
+    if (anchor.earlier !== undefined) {
+      const before = changes[anchor.earlier] as Extract<ChangeInput, { type: 'legge-til' }>
+      return { number: numberOf(`ny:${i}`), where: `etter den nye paragrafen «${before.title || 'uten tittel'}»` }
+    }
+    const parent = change.parent ? find(document, change.parent) : null
+    const after = change.after ? find(document, change.after) : null
+    const where = after ? `etter § ${after.nummer} ${after.tittel}` : parent ? `først i § ${parent.nummer} ${parent.tittel}` : 'først i vedtektene'
+    return { number: numberOf(`ny:${i}`), where }
+  })
 }
 
 // "Med 3 paragrafer under": what goes with a paragraph that is deleted
@@ -44,10 +86,11 @@ function underneath(document: Vedtekter, id: string) {
   return count ? `Med ${count} ${count === 1 ? 'paragraf' : 'paragrafer'} under` : undefined
 }
 
-// A change as proposed, against the vedtekter as they are now
-export function showChange(document: Vedtekter, change: Change): ChangeShown {
+// A change as proposed, against the vedtekter as they are now. A new paragraph is shown where it
+// goes among the others in the proposal, from placements().
+export function showChange(document: Vedtekter, change: Change, placed: Placed | null = null): ChangeShown {
   if (change.type === 'legge-til') {
-    const { number, where } = placement(document, change.parent, change.after)
+    const { number, where } = placed ?? placements(document, [change])[0]!
     return { heading: `Ny paragraf, § ${number}`, note: `Plassert ${where}`, before: null, after: { title: change.title, text: change.text } }
   }
   const shown = change.current ?? change.original
@@ -110,8 +153,8 @@ export function inputOf(document: Vedtekter, draft: Draft): ChangeInput {
 }
 
 // A change being written in the form, against the vedtekter as they are now
-export function showDraft(document: Vedtekter, change: ChangeInput): ChangeShown | null {
-  if (change.type === 'legge-til') return showChange(document, change)
+export function showDraft(document: Vedtekter, change: ChangeInput, placed: Placed | null = null): ChangeShown | null {
+  if (change.type === 'legge-til') return showChange(document, change, placed)
   const paragraph = find(document, change.target)
   if (!paragraph) return null
   const snapshot = { nummer: paragraph.nummer, tittel: paragraph.tittel, kilde: paragraph.kilde }
